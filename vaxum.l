@@ -18,6 +18,7 @@ vaxum.l
 \"(\\.|[^"\\])*\" {  yylval.slval=strdup(yytext); line_num+=count_char_instance(yytext, '\n'); return STRING_LITERAL; }
 DIRECTIONS	{ current_list = (char **) malloc((list_length+1) * sizeof(char *)); current_list[0] = NULL; return DIRECTIONS; }
 GLOBAL		{ return GLOBAL; }
+OBJECT		{ return OBJECT; }
 [0-9]+          { yylval.ival = atoi(yytext); return INT; }
 [A-Za-z0-9-]+	{ yylval.sval = strdup(yytext); 
 		  if (current_list) {

@@ -44,6 +44,7 @@
 %token DIRECTIONS
 %token GLOBAL
 %token ZIL_FALSE
+%token OBJECT 
 
 // Define the "terminal symbol" token types I'm going to use (in CAPS
 // by convention), and associate each with a field of the %union:
@@ -82,24 +83,33 @@ input_line:
   | global_variable_declaration
   | global_variable_false
   | directions_list 
+  | object_declaration 
   | CR
   | LF
   | less_than
   | greater_than
   ;
 
+object_declaration:
+	OBJECT STRING {
+	insert_indent(scope*2);
+	cout << "OBJECT " << $2 << endl;
+	}
+;	
+
 global_variable_declaration:
   GLOBAL STRING INT { 
 	insert_indent(scope*2);
 	cout << "GLOBAL " << $2 << " := " << $3 << endl;
 	}
+;
 
 global_variable_false:
   GLOBAL STRING ZIL_FALSE {
         insert_indent(scope*2);
         cout << "GLOBAL " << $2 << " := " << "ZIL_FALSE" << endl;
         }
-
+;
 
 directions_list:
   DIRECTIONS list_of_strings {
@@ -118,6 +128,7 @@ directions_list:
 list_of_strings:
     list_of_strings STRING 
     | STRING
+	;
 
 less_than:
 	 LT { 
