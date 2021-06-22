@@ -44,13 +44,8 @@
 // the first rule defined is the highest-level rule, which in our
 // case is just the concept of a whole "vaxum file":
 vaxum:
-  header template body_section footer {
+  template body_section {
       cout << "<***> " << (line_num-1) << " lines read" << endl;
-    }
-  ;
-header:
-  SNAZZLE FLOAT ENDLS {
-      cout << "reading a vaxum file version " << $2 << endl;
     }
   ;
 template:
@@ -78,9 +73,6 @@ body_line:
       cout << "new vaxum: " << $1 << $2 << $3 << $4 << $5 << endl;
       free($5);
     }
-  ;
-footer:
-  END ENDLS
   ;
 ENDLS:
      ENDLS ENDL

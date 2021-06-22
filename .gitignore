@@ -1,0 +1,4 @@
+lex.yy.c
+*.exe
+vaxum
+vaxum.tab.?
