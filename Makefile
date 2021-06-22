@@ -2,7 +2,7 @@
 all: vaxum
 
 vaxum.tab.c vaxum.tab.h: vaxum.y
-	bison -d vaxum.y
+	bison -t -d vaxum.y
 
 lex.yy.c: vaxum.l vaxum.tab.h
 	flex vaxum.l

@@ -32,10 +32,9 @@
 }
 
 // define the constant-string tokens:
-%token SNAZZLE TYPE
-%token END ENDL
-%token CRLF
-%token LT
+%token CR
+%token LF
+%token MYEOF
 
 // Define the "terminal symbol" token types I'm going to use (in CAPS
 // by convention), and associate each with a field of the %union:
@@ -48,60 +47,43 @@
 
 // the first rule defined is the highest-level rule, which in our
 // case is just the concept of a whole "vaxum file":
-vaxum:
-  typelines body_section {
+
+vaxum: end_of_file
+        | input_lines end_of_file
+       {
       cout << "<***> " << (line_num-1) << " lines read" << endl;
+      /* parsing complete, exit */
+      exit(0);
     }
   ;
-typelines:
-  typelines typeline
-  | typeline
-  | string_literal crlf
-  | less_than 
-  | crlf
-  | endl
+
+end_of_file:
+   MYEOF { 
+	cout << "<EOF> " << (line_num-1) << " lines read" << endl;
+	exit(1);
+	}
+  ;	
+
+input_lines:
+   input_line input_lines
+   | input_line 
+  ;
+input_line:
+  string_literal
+  | CR
+  | LF
   ;
 
-less_than:
-   LT { /* increase alligator scope */ printf ("<"); exit(1); }
-   ;
-
-crlf: 
-    CRLF { /* no op */ }
-   ;
-endl:
-    ENDL { /* no op */ } 
-   ;
 string_literal:
   STRING_LITERAL {
 	cout << "string_literal: [" << $1 << "]" << endl;
 	free ($1);
 	}
   ;
-typeline:
-  TYPE STRING ENDLS {
-      cout << "new defined vaxum type: " << $2 << endl;
-      free($2);
-    }
-  ;
 
-body_section:
-  body_lines
-  ;
-body_lines:
-  body_lines body_line
-  | body_line
-  ;
-body_line:
-  INT INT INT INT STRING ENDL {
-      cout << "new vaxum: " << $1 << $2 << $3 << $4 << $5 << endl;
-      free($5);
-    }
-  ;
-ENDLS:
-     ENDLS ENDL
-     | ENDL ;
-  ;
+end_of_file:
+  MYEOF { printf("end of file reached\n"); }
+  ;	
 
 %%
 
@@ -110,6 +92,7 @@ FILE *myfile = NULL;
 const char *input_filename = NULL;
 
 int main(int argc, char *argv[1]) {
+  //yydebug = 1;
   // Open a file handle to a particular file:
   myfile = fopen(argv[1], "r");
   // Make sure it is valid:
@@ -141,8 +124,6 @@ void yyerror(const char *s) {
   l = print_line_from_file(myfile, line_num);
   cout << endl << "Length: " << strlen(l) << endl;
   // might as well halt now:
-
-  printf("yytext=[%s]\n", yytext);
 
   for (x =0 ; x < strlen(l); x++) {
 	printf("[%02x]", l[x]);
