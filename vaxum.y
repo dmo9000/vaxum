@@ -12,6 +12,8 @@
   extern FILE *yyin;
   extern int line_num;
   extern char *yytext;
+  extern int list_length;
+  extern char **current_list; 
 
   int scope = 0;		/* 0 is "global" scope */
  
@@ -41,6 +43,7 @@
 %token GT
 %token DIRECTIONS
 %token GLOBAL
+%token ZIL_FALSE
 
 // Define the "terminal symbol" token types I'm going to use (in CAPS
 // by convention), and associate each with a field of the %union:
@@ -77,6 +80,7 @@ input_lines:
 input_line:
   string_literal
   | global_variable_declaration
+  | global_variable_false
   | directions_list 
   | CR
   | LF
@@ -85,15 +89,29 @@ input_line:
   ;
 
 global_variable_declaration:
-  GLOBAL STRING INT {
+  GLOBAL STRING INT { 
 	insert_indent(scope*2);
-	cout << "GLOBAL " << $2 << "=" << $3 << endl;
+	cout << "GLOBAL " << $2 << " := " << $3 << endl;
 	}
+
+global_variable_false:
+  GLOBAL STRING ZIL_FALSE {
+        insert_indent(scope*2);
+        cout << "GLOBAL " << $2 << " := " << "ZIL_FALSE" << endl;
+        }
+
 
 directions_list:
   DIRECTIONS list_of_strings {
+	int ii = 0;
 	insert_indent(scope*2);
-	cout << "<found DIRECTIONS>" << endl;
+ 	cout << "<DIRECTIONS := ";
+	for (ii = 0; ii < list_length; ii++) {
+		cout << current_list[ii] << " " ; 
+		}
+ 	cout << "> (" << list_length << ")" << endl;
+	current_list = NULL;
+	list_length = 0;
 	}
   ;
 
