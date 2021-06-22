@@ -18,6 +18,7 @@ vaxum.l
 ">"		{ return GT; }
 "("		{ return LB; }
 ")"		{ return RB; }
+"()"  { return PARAMETER_LIST_EMPTY ; }
 "\\"  { /* ESCAPE CHARACTER - NOT SURE WHAT TO DO */ }
 
 
@@ -44,6 +45,7 @@ TEXT      { return TEXT; }
 STRENGTH  { return STRENGTH; }
 
 VTYPE     { return VTYPE; }
+
 
 
 ROUTINE   { return ROUTINE; }

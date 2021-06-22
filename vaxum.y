@@ -68,6 +68,7 @@
 %token RB
 %token COMMENT
 %token ROUTINE
+%token PARAMETER_LIST_EMPTY
 
 
 // Define the "terminal symbol" token types I'm going to use (in CAPS
@@ -77,6 +78,7 @@
 %token STRING
 %type <sval> STRING
 %token <slval> STRING_LITERAL
+%type <sval> PARAMETER_LIST_EMPTY
 %%
 
 // the first rule defined is the highest-level rule, which in our
@@ -135,15 +137,15 @@ input_line:
 
 
 argument_list:
-  LB RB
+  PARAMETER_LIST_EMPTY
+  ;
    
 
 routine_decl:
-  ROUTINE STRING argument_list {
+  ROUTINE STRING PARAMETER_LIST_EMPTY {
             INSERT_INDENT(2);
-            cout << "ROUTINE " << $2 << endl;
-    
-  }
+            cout << "ROUTINE " << $2 << "()" << endl;
+      }
   ;
 
 size_val: 
