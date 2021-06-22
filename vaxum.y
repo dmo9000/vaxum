@@ -11,6 +11,7 @@
   extern int yyparse();
   extern FILE *yyin;
   extern int line_num;
+  extern char *yytext;
  
   void yyerror(const char *s);
 %}
@@ -27,33 +28,55 @@
   int ival;
   float fval;
   char *sval;
+  char *slval;
 }
 
 // define the constant-string tokens:
 %token SNAZZLE TYPE
 %token END ENDL
+%token CRLF
+%token LT
 
 // Define the "terminal symbol" token types I'm going to use (in CAPS
 // by convention), and associate each with a field of the %union:
 %token <ival> INT
 %token <fval> FLOAT
 %token <sval> STRING
+%token <slval> STRING_LITERAL
 
 %%
 
 // the first rule defined is the highest-level rule, which in our
 // case is just the concept of a whole "vaxum file":
 vaxum:
-  template body_section {
+  typelines body_section {
       cout << "<***> " << (line_num-1) << " lines read" << endl;
     }
-  ;
-template:
-  typelines
   ;
 typelines:
   typelines typeline
   | typeline
+  | string_literal crlf
+  | less_than 
+  | crlf
+  | endl
+  ;
+
+less_than:
+   LT { /* increase alligator scope */ printf ("<"); exit(1); }
+   ;
+
+crlf: 
+    CRLF { /* no op */ }
+   ;
+endl:
+    ENDL { /* no op */ } 
+   ;
+string_literal:
+  STRING_LITERAL {
+	cout << "string_literal: [" << $1 << "]" << endl;
+	free ($1);
+	}
   ;
 typeline:
   TYPE STRING ENDLS {
@@ -61,6 +84,7 @@ typeline:
       free($2);
     }
   ;
+
 body_section:
   body_lines
   ;
@@ -111,8 +135,18 @@ int main(int argc, char *argv[1]) {
 }
 
 void yyerror(const char *s) {
+  int x = 0; 
+  char *l = NULL;
   cout << "<-!-> parse error at file " << input_filename << " line " << line_num << ": " << s << endl;
-  print_line_from_file(myfile, line_num);
+  l = print_line_from_file(myfile, line_num);
+  cout << endl << "Length: " << strlen(l) << endl;
   // might as well halt now:
+
+  printf("yytext=[%s]\n", yytext);
+
+  for (x =0 ; x < strlen(l); x++) {
+	printf("[%02x]", l[x]);
+	}
+  printf("\n");
   exit(-1);
 }

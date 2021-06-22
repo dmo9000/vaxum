@@ -1,2 +1,3 @@
 
-int print_line_from_file(FILE *, int);
+char * print_line_from_file(FILE *, int);
+int count_char_instance(char *, char);

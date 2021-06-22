@@ -6,10 +6,10 @@ using namespace std;
 
 #define MAX_LINELEN 65536
 
-int print_line_from_file(FILE *x, int line_num)
+char * print_line_from_file(FILE *x, int line_num)
 {
     int i = 0;
-    char line[MAX_LINELEN];
+    static char line[MAX_LINELEN];
     assert(x != NULL);
     assert(line_num);
     fseek(x, 0, SEEK_SET);
@@ -18,7 +18,20 @@ int print_line_from_file(FILE *x, int line_num)
 	fgets((char *) &line, MAX_LINELEN - 1, x);
     	}
     cout << "<***> " << line << endl; 
-    return 1;
+    return (char *) &line;
+}
+
+int count_char_instance(char *s, char c)
+{
+	int i = 0;
+	while (s[0] != '\0') {
+		if (s[0] == c) {
+			i++;
+			}	
+		s++;
+		}
+	//cout << "(" << i << "instances found" << endl;
+	return i;
 }
 
 
