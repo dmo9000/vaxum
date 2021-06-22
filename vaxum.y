@@ -1,6 +1,9 @@
 %{
   #include <cstdio>
   #include <iostream>
+  #include <string.h>
+  #include "util.h"
+
   using namespace std;
 
   // Declare stuff from Flex that Bison needs to know about:
@@ -42,7 +45,7 @@
 // case is just the concept of a whole "vaxum file":
 vaxum:
   header template body_section footer {
-      cout << "done with a vaxum file!" << endl;
+      cout << "<***> " << (line_num-1) << " lines read" << endl;
     }
   ;
 header:
@@ -86,9 +89,13 @@ ENDLS:
 
 %%
 
+FILE *myfile = NULL;
+
+const char *input_filename = NULL;
+
 int main(int argc, char *argv[1]) {
   // Open a file handle to a particular file:
-  FILE *myfile = fopen(argv[1], "r");
+  myfile = fopen(argv[1], "r");
   // Make sure it is valid:
 
   if (argc > 1) {
@@ -98,8 +105,12 @@ int main(int argc, char *argv[1]) {
 	  }
 	  // Set Flex to read from it instead of defaulting to STDIN:
 	  yyin = myfile;
+	  int fnlen = 3 + strlen(argv[1]);
+	  input_filename = (const char *) malloc(fnlen);
+	  snprintf((char *) input_filename, fnlen, "'%s'", argv[1]);
 	} else {
 	  yyin = stdin;
+	  input_filename = (const char *) "<stdin>";
 	}
   
   // Parse through the input:
@@ -108,7 +119,8 @@ int main(int argc, char *argv[1]) {
 }
 
 void yyerror(const char *s) {
-  cout << "EEK, parse error on line " << line_num << "!  Message: " << s << endl;
+  cout << "<-!-> parse error at file " << input_filename << " line " << line_num << ": " << s << endl;
+  print_line_from_file(myfile, line_num);
   // might as well halt now:
   exit(-1);
 }
