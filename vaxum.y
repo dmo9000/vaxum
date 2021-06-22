@@ -12,6 +12,8 @@
   extern FILE *yyin;
   extern int line_num;
   extern char *yytext;
+
+  int scope = 0;		/* 0 is "global" scope */
  
   void yyerror(const char *s);
 %}
@@ -35,14 +37,18 @@
 %token CR
 %token LF
 %token MYEOF
+%token LT
+%token GT
+%token DIRECTIONS
+%token GLOBAL
 
 // Define the "terminal symbol" token types I'm going to use (in CAPS
 // by convention), and associate each with a field of the %union:
 %token <ival> INT
 %token <fval> FLOAT
-%token <sval> STRING
+%token STRING
+%type <sval> STRING
 %token <slval> STRING_LITERAL
-
 %%
 
 // the first rule defined is the highest-level rule, which in our
@@ -70,9 +76,36 @@ input_lines:
   ;
 input_line:
   string_literal
+  | global_variable_declaration
+  | directions_list 
   | CR
   | LF
+  | less_than
+  | greater_than
   ;
+
+global_variable_declaration:
+  GLOBAL STRING INT {
+	cout << "GLOBAL " << $2 << "=" << $3 << endl;
+	}
+
+directions_list:
+  DIRECTIONS list_of_strings {
+	cout << "<found DIRECTIONS>" << endl;
+	}
+  ;
+
+list_of_strings:
+    list_of_strings STRING 
+    | STRING
+
+less_than:
+	 LT { scope++ ;  cout <<  "<LT scope=" << scope << ">" << endl; }
+	;
+
+greater_than:
+	 GT { scope-- ;  cout <<  "<GT scope=" << scope << ">" << endl; }
+	;
 
 string_literal:
   STRING_LITERAL {
@@ -80,10 +113,6 @@ string_literal:
 	free ($1);
 	}
   ;
-
-end_of_file:
-  MYEOF { printf("end of file reached\n"); }
-  ;	
 
 %%
 
@@ -121,6 +150,7 @@ void yyerror(const char *s) {
   int x = 0; 
   char *l = NULL;
   cout << "<-!-> parse error at file " << input_filename << " line " << line_num << ": " << s << endl;
+  cout << "yytext: " << yytext << endl; 
   l = print_line_from_file(myfile, line_num);
   cout << endl << "Length: " << strlen(l) << endl;
   // might as well halt now:
