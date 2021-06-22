@@ -18,6 +18,8 @@ vaxum.l
 ">"		{ return GT; }
 "("		{ return LB; }
 ")"		{ return RB; }
+"\\"  { /* ESCAPE CHARACTER - NOT SURE WHAT TO DO */ }
+
 
 ;\"(\\.|[^"\\])*\" ;
 \"(\\.|[^"\\])*\" {  yylval.slval=strdup(yytext); line_num+=count_char_instance(yytext, '\n'); return STRING_LITERAL; }
@@ -37,7 +39,14 @@ SIZE		  { return SIZE; }
 TVALUE    { return TVALUE; }
 VALUE     { return VALUE; }
 CAPACITY  { return CAPACITY; }
-DESCFCN  { return DESCFCN; }
+DESCFCN   { return DESCFCN; }
+TEXT      { return TEXT; }
+STRENGTH  { return STRENGTH; }
+
+VTYPE     { return VTYPE; }
+
+
+ROUTINE   { return ROUTINE; }
 
 FLAGS		{ assert(current_list == NULL);
                    current_list = (char **) malloc((list_length+1) * sizeof(char *));
@@ -68,7 +77,7 @@ IN		{ yylval.sval = strdup(yytext);
 			}
 			return IN; }
 [0-9]+          { yylval.ival = atoi(yytext); return INT; }
-[A-Za-z0-9-]+	{ yylval.sval = strdup(yytext); 
+[#A-Za-z0-9-]+	{ yylval.sval = strdup(yytext); 
 		  if (current_list) {
 			current_list[list_length] = yylval.sval;
 			list_length++;

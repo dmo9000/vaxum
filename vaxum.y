@@ -53,6 +53,7 @@
 %token FDESC
 %token DESCFCN  
 %token LDESC
+%token TEXT
 %token FLAGS
 %token ACTION
 %token ADJECTIVE
@@ -60,10 +61,14 @@
 %token VALUE
 %token TVALUE
 %token CAPACITY
+%token STRENGTH
+%token VTYPE
 %token IN
 %token LB
 %token RB
 %token COMMENT
+%token ROUTINE
+
 
 // Define the "terminal symbol" token types I'm going to use (in CAPS
 // by convention), and associate each with a field of the %union:
@@ -104,10 +109,12 @@ input_line:
   | directions_list 
   | inclusion_decl
   | object_decl 
+  | text_decl
   | size_val
   | value_val
   | tvalue_val
   | capacity_val
+  | strength_val
   | synonyms_list
   | adjective_list
   | flags_list
@@ -116,12 +123,27 @@ input_line:
   | desc_func_decl
   | ldesc_decl
   | action_func_decl
-  | CR
-  | LF
+  | vtype_decl
+  | routine_decl
   | less_than
   | greater_than
   | left_bracket
   | right_bracket
+  | CR
+  | LF
+  ;
+
+
+argument_list:
+  LB RB
+   
+
+routine_decl:
+  ROUTINE STRING argument_list {
+            INSERT_INDENT(2);
+            cout << "ROUTINE " << $2 << endl;
+    
+  }
   ;
 
 size_val: 
@@ -152,6 +174,14 @@ capacity_val:
 		}
     ;        
 
+
+strength_val: 
+	STRENGTH INT {
+                INSERT_INDENT(2);
+                cout << "STRENGTH :=" << $2 << endl;
+		}
+    ;       
+
 action_func_decl:
         ACTION STRING {
                 INSERT_INDENT(2);
@@ -165,6 +195,14 @@ desc_func_decl:
                 cout << "DESCFCN " << $2 << endl;
                 }
         ;
+
+vtype_decl:
+  VTYPE INT
+  | VTYPE STRING {
+    INSERT_INDENT(2);
+    cout << "VTYPE " << $2 << endl;
+  }
+  ;
 
 desc_decl:
 	DESC STRING_LITERAL {
@@ -184,6 +222,13 @@ ldesc_decl:
 	LDESC STRING_LITERAL {
 		INSERT_INDENT(2);
 		cout << "LDESC " << $2 << endl;
+		}
+	;
+
+text_decl:
+	TEXT STRING_LITERAL {
+		INSERT_INDENT(2);
+		cout << "TEXT " << $2 << endl;
 		}
 	;
 
