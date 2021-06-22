@@ -86,11 +86,13 @@ input_line:
 
 global_variable_declaration:
   GLOBAL STRING INT {
+	insert_indent(scope*2);
 	cout << "GLOBAL " << $2 << "=" << $3 << endl;
 	}
 
 directions_list:
   DIRECTIONS list_of_strings {
+	insert_indent(scope*2);
 	cout << "<found DIRECTIONS>" << endl;
 	}
   ;
@@ -100,15 +102,22 @@ list_of_strings:
     | STRING
 
 less_than:
-	 LT { scope++ ;  cout <<  "<LT scope=" << scope << ">" << endl; }
+	 LT { 
+		insert_indent(scope*2);
+		scope++ ;  cout <<  "<LT scope=" << scope << ">" << endl; 
+		}
 	;
 
 greater_than:
-	 GT { scope-- ;  cout <<  "<GT scope=" << scope << ">" << endl; }
+	 GT { 
+		insert_indent(scope*2);
+		scope-- ;  cout <<  "<GT scope=" << scope << ">" << endl; 
+		}
 	;
 
 string_literal:
   STRING_LITERAL {
+	insert_indent(scope*2);
 	cout << "string_literal: [" << $1 << "]" << endl;
 	free ($1);
 	}

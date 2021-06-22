@@ -34,4 +34,13 @@ int count_char_instance(char *s, char c)
 	return i;
 }
 
+void insert_indent(int l)
+{
+   int i = 0;
+   for (i = 0; i < l; i++) {
+        putchar(' ');
+        putchar(' ');
+        }
+   return;
+}
 
