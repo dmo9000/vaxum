@@ -1,7 +1,9 @@
 %{
   #include <cstdio>
   #include <iostream>
+  #include <cassert>
   #include <string.h>
+  #include "contexts.h"
   #include "util.h"
 
   using namespace std;
@@ -19,6 +21,7 @@
 
   int scope = 0;		/* 0 is "global" scope */
   int bscope = 0;
+  ZIL_Context current_context;
  
   void yyerror(const char *s);
 %}
@@ -48,6 +51,7 @@
 %token GLOBAL
 %token ZIL_FALSE
 %token OBJECT 
+%token ROOM
 %token SYNONYM
 %token DESC
 %token FDESC
@@ -69,7 +73,15 @@
 %token COMMENT
 %token ROUTINE
 %token PARAMETER_LIST_EMPTY
-
+%token COND
+%token PREDICATE_VERB
+%token GLOBAL_VAR_DEREF
+%token RTRUE
+%token RFALSE
+%token MOVE_TO
+%token IF
+%token VERSION
+%token SETG
 
 // Define the "terminal symbol" token types I'm going to use (in CAPS
 // by convention), and associate each with a field of the %union:
@@ -79,6 +91,7 @@
 %type <sval> STRING
 %token <slval> STRING_LITERAL
 %type <sval> PARAMETER_LIST_EMPTY
+%type <sval> GLOBAL_VAR_DEREF
 %%
 
 // the first rule defined is the highest-level rule, which in our
@@ -104,13 +117,18 @@ input_lines:
    input_line input_lines
    | input_line 
   ;
+
+
 input_line:
   string_literal
-  | global_variable_decl
+  | version_decl
+  | set_global_variable
+  | declare_global_variable
   | global_variable_false
   | directions_list 
   | inclusion_decl
   | object_decl 
+  | room_decl
   | text_decl
   | size_val
   | value_val
@@ -127,6 +145,16 @@ input_line:
   | action_func_decl
   | vtype_decl
   | routine_decl
+  | conditional
+  | verb_predicate
+  | move_to_unconditional
+  | move_to_conditional
+  | moveinto_conditional
+  | cant_move_custom_text
+  | call_routine
+  | room_local_globals
+  | return_true
+  | return_false
   | less_than
   | greater_than
   | left_bracket
@@ -136,15 +164,60 @@ input_line:
   ;
 
 
-argument_list:
-  PARAMETER_LIST_EMPTY
+
+set_global_variable:
+  SETG STRING INT {
+      INSERT_INDENT(2);
+      cout << "SETG " << $2 << " " << $3 << endl;
+      assert(current_context == CONTEXT_GLOBAL);
+  }
   ;
-   
+
+version_decl:
+  VERSION STRING {
+      INSERT_INDENT(2);
+      cout << "VERSION " << $2 << endl;
+      assert(current_context == CONTEXT_GLOBAL);
+    }
+  ;
+
+return_true:
+  RTRUE {
+        INSERT_INDENT(2);
+        cout << "<RETURN TRUE (RTRUE)>" << endl;
+  }
+;
+
+return_false:
+  RFALSE {
+        INSERT_INDENT(2);
+        cout << "<RETURN FALSE (RFALSE)>" << endl;
+  }
+;
+
+
+
+verb_predicate:
+  PREDICATE_VERB STRING {
+      /* check whether the PRSA is set to a particular VERB */
+      INSERT_INDENT(2);
+      cout << "VERB? " << $2 << endl;
+  }
+;
+
+conditional:
+  COND {
+      INSERT_INDENT(2);
+      cout << "COND " << endl;
+  }
+  ;
 
 routine_decl:
   ROUTINE STRING PARAMETER_LIST_EMPTY {
             INSERT_INDENT(2);
-            cout << "ROUTINE " << $2 << "()" << endl;
+            cout << "ROUTINE " << $2 << " ()" << endl;
+            assert (current_context == CONTEXT_GLOBAL);
+            current_context = CONTEXT_ROUTINE_DEFN;
       }
   ;
 
@@ -246,10 +319,21 @@ object_decl:
 	OBJECT STRING {
 	INSERT_INDENT(2);
 	cout << "OBJECT " << $2 << endl;
+  assert(current_context == CONTEXT_GLOBAL);
+  current_context = CONTEXT_OBJECT_DEFN;
 	}
 ;	
 
-global_variable_decl:
+room_decl:
+	ROOM STRING {
+	INSERT_INDENT(2);
+  cout << "ROOM " << $2 << endl;
+  assert(current_context == CONTEXT_GLOBAL);
+  current_context = CONTEXT_ROOM_DEFN;
+	}
+;	
+
+declare_global_variable:
   GLOBAL STRING INT { 
 	INSERT_INDENT(2);
 	cout << "GLOBAL " << $2 << " := " << $3 << endl;
@@ -263,17 +347,40 @@ global_variable_false:
         }
 ;
 
+room_local_globals:
+  GLOBAL list_of_strings {
+	int ii = 0;
+	INSERT_INDENT(2);
+ 	cout << "GLOBAL(ROOM_LOCAL_GLOBALS) := ";
+  if (list_length != -1) {
+	  for (ii = 0; ii < list_length; ii++) {
+		  cout << current_list[ii] << " " ; 
+		  }
+ 	  cout << "(" << list_length << ")" << endl;
+	  current_list = NULL;
+	  list_length = -1;
+  } else {
+    cout << "VERY CONFUSED in CONTEXT ";
+    print_context(current_context);
+    assert(current_context == CONTEXT_ROOM_DEFN);
+    assert(NULL);
+    }
+  }
+  ;
+
+
 directions_list:
   DIRECTIONS list_of_strings {
 	int ii = 0;
 	INSERT_INDENT(2);
  	cout << "DIRECTIONS := ";
+  assert(list_length != -1);
 	for (ii = 0; ii < list_length; ii++) {
 		cout << current_list[ii] << " " ; 
 		}
  	cout << "(" << list_length << ")" << endl;
 	current_list = NULL;
-	list_length = 0;
+	list_length = -1;
 	}
   ;
 
@@ -282,12 +389,13 @@ synonyms_list:
         int ii = 0;
         INSERT_INDENT(2);
         cout << "SYNONYM := ";
+        assert(list_length != -1);
         for (ii = 0; ii < list_length; ii++) {
                 cout << current_list[ii] << " " ;
                 }
         cout << "(" << list_length << ")" << endl;
         current_list = NULL;
-        list_length = 0;
+        list_length = -1;
         }
   ;
 
@@ -296,12 +404,13 @@ flags_list:
         int ii = 0;
         INSERT_INDENT(2);
         cout << "FLAGS := ";
+        assert(list_length != -1);
         for (ii = 0; ii < list_length; ii++) {
                 cout << current_list[ii] << " " ;
                 }
         cout << "(" << list_length << ")" << endl;
         current_list = NULL;
-        list_length = 0;
+        list_length = -1;
         }
   ;
 
@@ -309,16 +418,57 @@ adjective_list:
   ADJECTIVE list_of_strings {
         int ii = 0;
         INSERT_INDENT(2);
+        assert(list_length != -1);
         cout << "ADJECTIVE := ";
         for (ii = 0; ii < list_length; ii++) {
                 cout << current_list[ii] << " " ;
                 }
         cout << "(" << list_length << ")" << endl;
         current_list = NULL;
-        list_length = 0;
+        list_length = -1;
         }
   ;
 
+move_to_unconditional:
+  STRING MOVE_TO STRING {
+      INSERT_INDENT(2);
+      /* unconditional move */
+      cout << "MOVE_TO(" << $1 << ") TO " << $3 << endl;
+      }
+      ;
+
+move_to_conditional:
+  STRING MOVE_TO STRING IF STRING {
+      INSERT_INDENT(2);
+      /* unconditional move */
+      cout << "MOVE_TO(" << $1 << ") TO " << $3 << " IF " << $5 << endl;
+      }
+      ;
+
+ moveinto_conditional:
+   IN MOVE_TO STRING IF STRING {
+      INSERT_INDENT(2);
+      /* unconditional move */
+      cout << "MOVE_TO(IN)" << " TO " << $3 << " IF " << $5 << endl;
+      }
+      ;    
+
+cant_move_custom_text:
+  STRING STRING_LITERAL {
+    INSERT_INDENT(2);
+    /* can't move, custom text supplied */
+    cout << "DIRECTION(" << $1 << "): " << $2 << endl;
+  }
+  ;
+
+
+call_routine:
+  STRING GLOBAL_VAR_DEREF {
+      INSERT_INDENT(2);
+      /* any otherwise unmatched string is presumed to be a call to a ROUTINE */
+      cout << "-> " << $1 << " " << $2 << endl;
+  }
+  ;
 
 list_of_strings:
     list_of_strings STRING 
@@ -336,6 +486,23 @@ greater_than:
 	 GT { 
 		//INSERT_INDENT(2);
 		scope-- ;  //cout <<  "<GT scope=" << scope << ">" << endl; 
+    //assert(current_context != CONTEXT_GLOBAL);
+    switch (current_context) {
+        case CONTEXT_GLOBAL:
+          /* nothing to do */
+          break;
+        case CONTEXT_OBJECT_DEFN:
+          current_context = CONTEXT_GLOBAL;
+          break;
+        case CONTEXT_ROUTINE_DEFN:
+          current_context = CONTEXT_GLOBAL;
+          break;
+        default:
+          cout << "+++ Leaving invalid context!";
+          print_context(current_context);
+          assert(NULL);
+          break;
+      }
 		}
 	;
 
@@ -366,8 +533,10 @@ FILE *myfile = NULL;
 const char *input_filename = NULL;
 
 int main(int argc, char *argv[1]) {
+  current_context = CONTEXT_GLOBAL;
   //yydebug = 1;
   // Open a file handle to a particular file:
+
   myfile = fopen(argv[1], "r");
   // Make sure it is valid:
 

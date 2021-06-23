@@ -2,6 +2,7 @@
 #include <iostream>
 #include <cassert>
 #include <string.h>
+#include "util.h"
 using namespace std;
 
 #define MAX_LINELEN 65536
@@ -44,3 +45,24 @@ void insert_indent(int l)
    return;
 }
 
+void print_context(ZIL_Context zc)
+{
+	switch (zc) {
+	case CONTEXT_GLOBAL:
+		cout << "[CONTEXT_GLOBAL]" << endl;
+		break;
+	case CONTEXT_ROOM_DEFN:
+		cout << "[CONTEXT_ROOM_DEFN]" << endl;
+		break;
+	case CONTEXT_OBJECT_DEFN:
+		cout << "[CONTEXT_OBJECT_DEFN]" << endl;
+		break;
+	case CONTEXT_ROUTINE_DEFN:
+		cout << "[CONTEXT_ROUTINE_DEFN]" << endl;
+		break;
+	default:
+		cout << "[INVALID_CONTEXT}" << endl;
+		break;
+	}
+	return;
+}
