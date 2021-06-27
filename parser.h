@@ -5,8 +5,8 @@
 
 #ifndef YYTOKENTYPE
 # define YYTOKENTYPE
-  enum yytokentype
-  {
+enum yytokentype
+{
     CR = 258,
     LF = 259,
     MYEOF = 260,
@@ -60,18 +60,18 @@
     INSERT_FILE = 308,
     QUESTION = 309,
     DEFMAC = 310
-  
-  };
+
+};
 #endif
 
 union YYSTYPE
 {
 #line 37 "vaxum.y" /* yacc.c:1909  */
 
-  int ival;
-  float fval;
-  char *sval;
-  char *slval;
+    int ival;
+    float fval;
+    char *sval;
+    char *slval;
 
 #line 108 "vaxum.tab.h" /* yacc.c:1909  */
 };
