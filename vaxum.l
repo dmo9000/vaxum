@@ -6,7 +6,11 @@ vaxum.l
   #include "util.h"
   using namespace std;
 
-  #include "vaxum.tab.h"  // to get the token types from Bison
+/*  #include "vaxum.tab.h"  // to get the token types from Bison */
+
+#include "parser.h"
+
+  YYSTYPE yylval;
   int line_num = 1;
   char *yylval_string_literal = NULL;
   char **current_list = NULL;
@@ -23,6 +27,7 @@ vaxum.l
 ")"		{ return RB; }
 \(\)  { return PARAMETER_LIST_EMPTY ; }
 "\\"  { /* ESCAPE CHARACTER - NOT SURE WHAT TO DO */ }
+\\\"  { return ESCAPED_QUOTE; }
 
 
 ;\"(\\.|[^"\\])*\" ;
@@ -35,7 +40,7 @@ DIRECTIONS	{  assert(current_list == NULL);
                current_list[0] = NULL; 
                return DIRECTIONS; 
                }
-
+"GASSIGNED?"	  { return GASSIGNED_QUESTION; }
 FDESC		  { return FDESC; }
 LDESC		  { return LDESC; }
 DESC		  { return DESC; }
@@ -57,7 +62,13 @@ ROUTINE   { return ROUTINE; }
 TO        { return MOVE_TO; }
 IF        { return IF; }
 VERSION   { return VERSION; }
+SET 	  { return SET; }
 SETG      { return SETG; }
+OR	  { return OR; }
+\!    { return BANG; }
+PRINC   { return PRINC; }
+"INSERT-FILE" { return INSERT_FILE; }
+
 
 FLAGS		{ assert(current_list == NULL);
           assert(list_length == -1);
@@ -99,6 +110,9 @@ IN		{ yylval.sval = strdup(yytext);
 
 \<RTRUE\>      { return RTRUE; } 
 \<RFALSE\>      { return RFALSE; } 
+
+
+[#A-Za-z0-9-]+"?"	{ yylval.sval = strdup(yytext); return QUESTION; }
 
 ,[#A-Za-z0-9-]+	{ yylval.sval = strdup(yytext); return GLOBAL_VAR_DEREF; }
 

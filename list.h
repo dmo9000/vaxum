@@ -1,5 +1,5 @@
 #pragma once
-
+#include <cstdio>
 
 enum _listitemtype {
 		  LISTITEM_FILE,

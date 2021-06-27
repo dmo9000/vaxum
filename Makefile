@@ -1,15 +1,22 @@
 
 all: vaxum
 
+SRCS=lex.yy.c main.c parser.c
+OBJS=lex.yy.o util.o main.o tokens.o parser.o
+
+%.o: %.c
+	$(CXX) -c $(CFLAGS) $< -o $@
+
+vaxum: vaxum.tab.c vaxum.tab.h lex.yy.c ${OBJS}
+	g++ -o vaxum ${OBJS} -lfl
+
 vaxum.tab.c vaxum.tab.h: vaxum.y
 	bison -t -d vaxum.y
 
-lex.yy.c: vaxum.l vaxum.tab.h
+lex.yy.c: vaxum.l  
 	flex vaxum.l
 
-vaxum: lex.yy.c vaxum.tab.c vaxum.tab.h util.c
-	g++ vaxum.tab.c lex.yy.c util.c -lfl -o vaxum
-
 clean:
-	rm -f  vaxum.tab.{c,h} lex.yy.c vaxum{,.exe}
+	rm -f  vaxum.tab.{c,h} lex.yy.c vaxum vaxum.exe *.stackdump, vaxum2{,.exe} *.o vaxum2 vaxum2.exe
+	
 	
