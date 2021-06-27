@@ -7,6 +7,9 @@ const char *token_name(int t)
 {
 
 	switch(t) {
+		  case DEFMAC: 
+		  	return ((const char*) "DEFMAC");
+			  break;
 		  case QUESTION:
 			return ((const char *) "QUESTION");
 			break;

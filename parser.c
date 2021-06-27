@@ -3,11 +3,17 @@
 #include <string.h>
 #include "libgen.h"
 #include "parser.h"
+#include "list.h"
+#include "stack.h"
 
 using namespace std;
 
 extern int yylex();
 extern YYSTYPE yylval;
+extern FILE *current_fh;
+extern int yyset_in(FILE *);
+extern FILE *yyin;
+extern int yyrestart(FILE *);
 
 int alligator_scope_depth = 0;
 int brackets_scope_depth = 0;
@@ -15,6 +21,10 @@ int brackets_scope_depth = 0;
 extern char *my_yyfilename;
 extern int line_num;
 ZIL_Context current_context = CONTEXT_GLOBAL;
+
+
+stack *file_stack = NULL;
+stack *scope_stack = NULL;
 
 int parse_recursive(int);
 int parse_or();
@@ -99,15 +109,75 @@ int parse_nested_alligator_list_of_crap() {
 
     y = yylex();
   }
-  // cout << endl << "3alligator_scope_depth: " << alligator_scope_depth <<
-  // endl;
   assert(ssd = alligator_scope_depth);
-  // cout << "<END OF LIST OF CRAP>" << endl;
   alligator_scope_depth--;
   return 1;
 }
 
+int parse_nested_bracket_list_of_crap() {
+
+  int y = 0;
+  int ssd = 0;
+  int fsd = 0;
+
+  cout << " < ";
+  ssd = brackets_scope_depth;
+  alligator_scope_depth++;
+
+  y = yylex();
+
+  while (brackets_scope_depth > ssd) {
+    // cout << endl << "2alligator_scope_depth: " << alligator_scope_depth <<
+    // endl; debug_token(y);
+    switch (y) {
+    case STRING_LITERAL:
+      cout << yylval.sval << " ";
+      break;
+    case GLOBAL_VAR_DEREF:
+      /* don't do anything */
+      cout << yylval.sval << " ";
+      break;
+    case ESCAPED_QUOTE:
+      cout << "\\\" ";
+      /* don't do anything */
+      break;
+    case BANG:
+      cout << "! ";
+      /* don't do anything */
+      break;
+    case STRING:
+      /* don't do anything */
+      cout << yylval.sval << " ";
+      break;
+    case LB:
+      cout << " ( ";
+      brackets_scope_depth++;
+      break;
+    case RB:
+      cout << " ) " << endl;
+      brackets_scope_depth--;
+      break;
+
+    default:
+      invalid_token(y, __FUNCTION__, __FILE__, __LINE__);
+      exit(1);
+      break;
+    }
+
+    y = yylex();
+  }
+  cout << "ssd=" << ssd << ", brackets_scope_depth=" << brackets_scope_depth << endl;
+  assert(ssd == brackets_scope_depth);
+  brackets_scope_depth--;
+  return 1;
+}
+
+
+
+
 int parse_insert_file() {
+  FILE *nfh = NULL;
+  _fileref *fr = NULL;
   char new_full_file_name[MAX_STRING];
   char *working_path = NULL;
   char *filename = NULL;
@@ -118,7 +188,7 @@ int parse_insert_file() {
   cout << "INSERT-FILE " << yylval.sval << " ";
   working_path=dirname(strdup(my_yyfilename));
 
-  /* dont know what this is for yet */
+  /* dont know what this third argument is for yet */
   
     /* WARNING: leaks */
   memset(&new_full_file_name, 0, MAX_STRING);
@@ -127,11 +197,11 @@ int parse_insert_file() {
   
   filename = strdup(dequote(yylval.sval));
   filename = strdup(lowercase(filename));
-  strncat(p, "/", 1);
+  strncat(p, "/", 2);
   p+=1;
   strncat(p, filename, strlen(filename));
   p+=strlen(filename);
-  strncat(p, ".zil", 4);
+  strncat(p, ".zil", 5);
   p+=4;
   cout << "[" << new_full_file_name << "] ";
 
@@ -144,7 +214,41 @@ int parse_insert_file() {
   alligator_scope_depth--;
   cout << ">" << endl;
   
-  return 1;
+  /* create new fileref */
+
+  fr = (struct _fileref*) malloc(sizeof(struct _fileref));
+  memset(fr, 0, sizeof(struct _fileref));
+  fr->filename=strdup(my_yyfilename);
+  fr->line_num = line_num;
+  fr->handle = current_fh;
+  fr->offset = ftell(current_fh);
+
+  stackitem* nsi = stackitem_new();
+  assert(nsi);
+  nsi->type = LISTITEM_FILEREF;
+  memcpy(&nsi->payload.fr, fr, sizeof(struct _fileref));
+  assert(nsi->payload.fr.offset == fr->offset);
+  assert(nsi->payload.fr.handle == fr->handle);
+  assert(nsi->payload.fr.line_num == fr->line_num);
+  assert(stack_push(file_stack, nsi));
+
+  cout << "old_filehandle: " << current_fh << endl;
+  current_fh = NULL;
+  current_fh = fopen(new_full_file_name, "r");
+  assert(current_fh);
+  my_yyfilename = strdup(new_full_file_name); 
+  line_num = 0;
+
+  cout << "+++ switched to input file " << new_full_file_name << endl;
+  yyset_in(current_fh);
+  yyin = current_fh;
+
+  yyrestart(current_fh);
+
+  cout << "new_filehandle: " << current_fh << endl;
+  y= yylex();
+  parse_recursive(y);
+  return 1; 
 }
 
 int parse_princ() {
@@ -207,6 +311,45 @@ int parse_set() {
   return 1;
 }
 
+
+int parse_defmac() {
+
+  /* set global variable (integer?) */
+
+  int y = 0;
+  assert(alligator_scope_depth >= 0);
+  y = yylex();
+  switch(y) {        
+    case QUESTION:
+       break;
+    case STRING:
+      break;
+    default:
+      cout << "parse_defmac: invalid argument #1" << endl;
+      exit(1);
+    }
+    
+  cout << "DEFMAC [" << yylval.sval << "] ";
+  y = yylex();
+
+  switch (y) {
+  case LB:
+    parse_nested_bracket_list_of_crap();
+    break;
+  case LT:
+    /* stream of random crap */
+    parse_nested_alligator_list_of_crap();
+    break;
+
+  default:
+    invalid_token(y, __FUNCTION__, __FILE__, __LINE__);
+    exit(1);
+    break;
+  }
+
+  return 1;
+}
+
 int parse_setg() {
 
   /* set global variable (integer?) */
@@ -214,7 +357,17 @@ int parse_setg() {
   int y = 0;
   assert(alligator_scope_depth >= 0);
   y = yylex();
-  assert(y == STRING);
+  switch(y) {
+    case QUESTION:
+       break;
+    case STRING:
+      break;
+    default:
+      cout << "parse_setg: invalid argument #1" << endl;
+      exit(1);
+    }
+
+
   cout << "SETG [" << yylval.sval << "] ";
   y = yylex();
 
@@ -263,6 +416,13 @@ int parse_main() {
   assert(brackets_scope_depth == 0);
   assert(current_context == CONTEXT_GLOBAL);
 
+  file_stack = stack_new();
+  assert(file_stack);
+  file_stack->label = "open filehandles list";
+  scope_stack = stack_new();
+  assert(scope_stack);
+  scope_stack->label = "open scoping list";
+
   int y = yylex();
   return parse_recursive(y);
 }
@@ -289,7 +449,11 @@ int parse_recursive(int y) {
       }
       break;
 
-      break;
+    case DEFMAC:
+      if (!parse_defmac()) {
+         cout << "Fatal error" << endl;
+        assert(NULL);
+      }
 
     case PRINC:
       if (!parse_princ()) {

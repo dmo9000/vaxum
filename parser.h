@@ -58,7 +58,8 @@
     ESCAPED_QUOTE = 306,
     PRINC = 307,
     INSERT_FILE = 308,
-    QUESTION = 309
+    QUESTION = 309,
+    DEFMAC = 310
   
   };
 #endif

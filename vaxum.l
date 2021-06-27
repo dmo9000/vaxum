@@ -67,6 +67,7 @@ SETG      { return SETG; }
 OR	  { return OR; }
 \!    { return BANG; }
 PRINC   { return PRINC; }
+DEFMAC  { return DEFMAC; }
 "INSERT-FILE" { return INSERT_FILE; }
 
 
