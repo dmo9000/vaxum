@@ -15,6 +15,13 @@ vaxum.l
   char *yylval_string_literal = NULL;
   char **current_list = NULL;
   int list_length = -1;
+  extern char *my_yyfilename;
+
+YY_BUFFER_STATE get_yy_current_buffer()
+{
+
+	return YY_CURRENT_BUFFER;
+}
 
 %}
 %option noyywrap
@@ -133,7 +140,7 @@ IN		{ yylval.sval = strdup(yytext);
 
 \014  { /* FORM FEED */ ; }
 
-<<EOF>>		{ /* printf("END OF FILE!\n"); */ return MYEOF; }
+<<EOF>>		{ cout << "<<EOF>> (" << my_yyfilename << ")" << endl ; return MYEOF; }
 
 .		{ printf("<!!!> unrecognized token at line %d, length=%d\n[%02x] %c -> %s\n", line_num, strlen(yytext), yytext[0], yytext[0], yytext); exit(1); }
 %%

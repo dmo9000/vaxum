@@ -1,11 +1,13 @@
 #pragma once
 #include <cstdio>
+#include "flex.h"
 
 struct _fileref {
     char *filename;
     int line_num;
     FILE *handle;
     off_t offset;
+	YY_BUFFER_STATE buffer_state;
 };
 
 
@@ -13,7 +15,9 @@ enum _listitemtype {
     LISTITEM_UNKNOWN,
     LISTITEM_FILEREF,
     LISTITEM_INT16,
-    LISTITEM_STRING
+    LISTITEM_STRING,
+	LISTITEM_ENCLOSURE
+
 };
 
 union _listitempayload {
@@ -23,14 +27,14 @@ union _listitempayload {
 };
 
 struct _1listitem {
-    char *label;
+    const char *label;
     struct _1listitem *next;
     _listitemtype type;
     _listitempayload payload;
 };
 
 struct _2listitem {
-    char *label;
+    const char *label;
     struct _2listitem *prev;
     struct _2listitem *next;
     _listitemtype type;
@@ -38,13 +42,13 @@ struct _2listitem {
 };
 
 struct _singly_linked_list {
-    char *label;
+    const char *label;
     uint32_t count;
     struct _1listitem *head;
 };
 
 struct _doubly_linked_list {
-    char *label;
+    const char *label;
     uint32_t count;
     struct _2listitem *head;
     struct _2listitem *tail;

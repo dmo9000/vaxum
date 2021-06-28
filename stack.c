@@ -1,5 +1,6 @@
 #include <cassert>
 #include <iostream>
+#include <cstdbool>
 #include <string.h>
 #include "libgen.h"
 #include "parser.h"
@@ -26,6 +27,38 @@ stackitem *stackitem_new()
     return (stackitem*) new_doubly_linked_listitem();
 }
 
+stackitem* stack_pop(stack *s)
+{
+
+    stackitem *lsi = NULL;
+
+    if (!s->count) {
+            /* can't pop item from empty stack */
+            assert(s->head == NULL);
+            assert(s->tail == NULL);
+            return NULL;
+    }
+
+    lsi = (stackitem *) s->head;
+    lsi->prev = NULL;
+    lsi->next = NULL;
+
+    s->count --;
+    assert(s->count >= 0);
+
+    if (s->count > 0) {
+        s->head = lsi->next;
+        s->head->prev = NULL;
+        assert(lsi->next);
+    } else {
+        s->head = NULL;
+        s->tail = NULL;     
+    }
+    cout << "\n<stack_pop " << s->label << ":stack_size=" << s->count << ">\n";
+    return lsi;
+}
+
+
 bool stack_push(stack* s, stackitem* si)
 {
 
@@ -33,6 +66,7 @@ bool stack_push(stack* s, stackitem* si)
 
     assert(s);
 
+    /*
     if (s->label) {
         cout << "+++ stack_push(" << s->label << ", count=" << s->count << "-> " << s->count+1 << ")";
         if (si->label) {
@@ -41,6 +75,7 @@ bool stack_push(stack* s, stackitem* si)
             cout << endl;
         }
     }
+    */
 
     /* if stack has zero count, verify that head/tail links are NULL too */
 
@@ -51,6 +86,7 @@ bool stack_push(stack* s, stackitem* si)
         s->head = si;
         s->tail = si;
         s->count++;
+        cout << "\n<stack_push " << s->label << ":stack_size=" << s->count << ">\n";
         return true;
     }
 
@@ -64,6 +100,8 @@ bool stack_push(stack* s, stackitem* si)
     si->next = s->head;
     s->head->prev = si;
     s->head = si;
+    s->count++;
 
+    cout << "\n<stack_push " << s->label << ":stack_size=" << s->count << ">\n";
     return true;
 }

@@ -1,3 +1,5 @@
+CPPFLAGS = -g -ggdb
+
 
 all: vaxum
 
@@ -9,7 +11,7 @@ OBJS=lex.yy.o util.o main.o tokens.o parser.o stack.o list.o
 
 # vaxum: vaxum.tab.c vaxum.tab.h lex.yy.c ${OBJS}
 vaxum: lex.yy.c ${OBJS}
-	g++ -o vaxum ${OBJS} -lfl
+	$(CXX) ${CPPFLAGS} -o  vaxum ${OBJS} -lfl
 
 # vaxum.tab.c vaxum.tab.h: vaxum.y
 	# bison -t -d vaxum.y
