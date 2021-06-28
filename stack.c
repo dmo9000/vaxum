@@ -21,7 +21,6 @@ stack *stack_new()
     return ns;
 }
 
-
 stackitem *stackitem_new()
 {
     return (stackitem*) new_doubly_linked_listitem();
@@ -40,21 +39,20 @@ stackitem* stack_pop(stack *s)
     }
 
     lsi = (stackitem *) s->head;
-    lsi->prev = NULL;
-    lsi->next = NULL;
-
     s->count --;
     assert(s->count >= 0);
 
     if (s->count > 0) {
-        s->head = lsi->next;
+        s->head = lsi->next;     
         s->head->prev = NULL;
         assert(lsi->next);
     } else {
         s->head = NULL;
         s->tail = NULL;     
     }
-    cout << "\n<stack_pop " << s->label << ":stack_size=" << s->count << ">\n";
+    //cout << "\n<stack_pop " << s->label << ":stack_size=" << s->count << ">\n";
+    lsi->prev = NULL;
+    lsi->next = NULL;
     return lsi;
 }
 
@@ -86,7 +84,7 @@ bool stack_push(stack* s, stackitem* si)
         s->head = si;
         s->tail = si;
         s->count++;
-        cout << "\n<stack_push " << s->label << ":stack_size=" << s->count << ">\n";
+        //cout << "\n<stack_push " << s->label << ":stack_size=" << s->count << ">\n";
         return true;
     }
 
@@ -102,6 +100,6 @@ bool stack_push(stack* s, stackitem* si)
     s->head = si;
     s->count++;
 
-    cout << "\n<stack_push " << s->label << ":stack_size=" << s->count << ">\n";
+    //cout << "\n<stack_push " << s->label << ":stack_size=" << s->count << ">\n";
     return true;
 }

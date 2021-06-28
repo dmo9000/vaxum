@@ -7,7 +7,7 @@ SRCS=lex.yy.c main.c parser.c
 OBJS=lex.yy.o util.o main.o tokens.o parser.o stack.o list.o
 
 %.o: %.c
-	$(CXX) -c $(CFLAGS) $< -o $@
+	$(CXX) ${CPPFLAGS} -c $< -o $@
 
 # vaxum: vaxum.tab.c vaxum.tab.h lex.yy.c ${OBJS}
 vaxum: lex.yy.c ${OBJS}

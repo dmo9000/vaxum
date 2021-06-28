@@ -46,7 +46,7 @@ bool push_enclosure_type(int y)
         new_enclosure_type->payload.i16 = LB;
         assert(stack_push(scope_stack, new_enclosure_type));
         brackets_scope_depth++;
-        cout << "({" << brackets_scope_depth << "} ";
+        cout << "({" << brackets_scope_depth << "}";
         return true;
         break;
     case LT:
@@ -55,7 +55,7 @@ bool push_enclosure_type(int y)
         new_enclosure_type->payload.i16 = LT;
         assert(stack_push(scope_stack, new_enclosure_type));
         alligator_scope_depth++;
-        cout << "<{" << alligator_scope_depth << "} ";
+        cout << "<{" << alligator_scope_depth << "}";
         return true;
         break;
     default:
@@ -85,10 +85,12 @@ bool enforce_enclosure_type(int y, const char *function, const char *file, int l
     case GT:
         if (last_enclosure->payload.i16 == LT) {
             alligator_scope_depth --;
-            cout << " {" << alligator_scope_depth << "}>\n";
+            cout << "{" << alligator_scope_depth << "}>";
             return true;
         } else {
-            cout << "+++ mismatched scope enclosure, expected '>', got '" << token_name(y) << "\n";
+            cout << "\n\t+++ gt: mismatched scope enclosure, expected '>', got '" << token_name(y) << "'\n" << flush;
+            cout << "\t\t+++     at " << my_yyfilename << ":" << line_num << flush;
+            assert(NULL);
             return false;
         }
         return false;
@@ -96,10 +98,12 @@ bool enforce_enclosure_type(int y, const char *function, const char *file, int l
     case RB:
         if (last_enclosure->payload.i16 == LB) {
             brackets_scope_depth --;
-            cout << " {" << brackets_scope_depth << "})\n";
+            cout << "{" << brackets_scope_depth << "})";
             return true;
         } else {
-            cout << "+++ mismatched scope enclosure, expected ')', got '" << token_name(y) << "\n";
+            cout << "\n\t+++ rb: mismatched scope enclosure, expected ')', got '" << token_name(y) << "'\n" << flush;
+            cout << "\t\t+++     at " << my_yyfilename << ":" << line_num << flush;
+            assert(NULL);
             return false;
         }
         return false;
@@ -141,9 +145,6 @@ void debug_token(int y) {
 
         break;
     }
-
-
-
     return;
 }
 
@@ -160,120 +161,6 @@ void invalid_token(int y, const char *function, const char *file, int line) {
     }
     exit(1);
 }
-
-int parse_nested_alligator_list_of_crap() {
-
-    int y = 0;
-    int ssd = 0;
-    int fsd = 0;
-
-    cout << " < ";
-    //	cout << endl << "1alligator_scope_depth: " << alligator_scope_depth <<
-    // endl;
-    ssd = alligator_scope_depth;
-    alligator_scope_depth++;
-
-    y = yylex();
-
-    while (alligator_scope_depth > ssd) {
-        // cout << endl << "2alligator_scope_depth: " << alligator_scope_depth <<
-        // endl; debug_token(y);
-        switch (y) {
-        case GLOBAL_VAR_DEREF:
-            /* don't do anything */
-            cout << yylval.sval << " ";
-            break;
-        case ESCAPED_QUOTE:
-            cout << "\\\" ";
-            /* don't do anything */
-            break;
-        case BANG:
-            cout << "! ";
-            /* don't do anything */
-            break;
-        case STRING:
-            /* don't do anything */
-            cout << yylval.sval << " ";
-            break;
-        case LT:
-            cout << " < ";
-            alligator_scope_depth++;
-            break;
-        case GT:
-            cout << " > " << endl;
-            alligator_scope_depth--;
-            break;
-        default:
-            invalid_token(y, __FUNCTION__, __FILE__, __LINE__);
-            exit(1);
-            break;
-        }
-
-        y = yylex();
-    }
-    assert(ssd = alligator_scope_depth);
-    alligator_scope_depth--;
-    return 1;
-}
-
-int parse_nested_bracket_list_of_crap() {
-
-    int y = 0;
-    int ssd = 0;
-    int fsd = 0;
-
-    cout << " < ";
-    ssd = brackets_scope_depth;
-    alligator_scope_depth++;
-
-    y = yylex();
-
-    while (brackets_scope_depth > ssd) {
-        // cout << endl << "2alligator_scope_depth: " << alligator_scope_depth <<
-        // endl; debug_token(y);
-        switch (y) {
-        case STRING_LITERAL:
-            cout << yylval.sval << " ";
-            break;
-        case GLOBAL_VAR_DEREF:
-            /* don't do anything */
-            cout << yylval.sval << " ";
-            break;
-        case ESCAPED_QUOTE:
-            cout << "\\\" ";
-            /* don't do anything */
-            break;
-        case BANG:
-            cout << "! ";
-            /* don't do anything */
-            break;
-        case STRING:
-            /* don't do anything */
-            cout << yylval.sval << " ";
-            break;
-        case LB:
-            cout << " ( ";
-            brackets_scope_depth++;
-            break;
-        case RB:
-            cout << " ) " << endl;
-            brackets_scope_depth--;
-            break;
-
-        default:
-            invalid_token(y, __FUNCTION__, __FILE__, __LINE__);
-            exit(1);
-            break;
-        }
-
-        y = yylex();
-    }
-    cout << "ssd=" << ssd << ", brackets_scope_depth=" << brackets_scope_depth << endl;
-    assert(ssd == brackets_scope_depth);
-    brackets_scope_depth--;
-    return 1;
-}
-
 
 
 
@@ -312,9 +199,10 @@ int parse_insert_file() {
     assert(yylval.sval[0] == 'T' && strlen(yylval.sval) == 1);
     cout << "T";
     y = yylex();
-    assert(y == GT);
-    alligator_scope_depth--;
-    cout << ">" << endl;
+
+    assert(enforce_enclosure_type(GT, __FUNCTION__, __FILE__, __LINE__));
+    cout << "\n\n";
+
 
     /* create new fileref */
 
@@ -344,7 +232,7 @@ int parse_insert_file() {
     current_fh = fopen(new_full_file_name, "r");
     assert(current_fh);
     my_yyfilename = strdup(new_full_file_name);
-    line_num = 0;
+    line_num = 1;
 
 
     //cout << "+++ switched to input file " << new_full_file_name << endl;
@@ -357,6 +245,7 @@ int parse_insert_file() {
     // cout << "new_filehandle: " << current_fh << endl;
     y= yylex();
     parse_recursive(y);
+
     return 1;
 }
 
@@ -368,27 +257,140 @@ int parse_princ() {
     return 1;
 }
 
-int parse_or() {
-    /* this looks complicated */
-
+int parse_skip_unimplemented(const char *s)
+{
     int y = 0;
-    assert(alligator_scope_depth == 1);
-
-    cout << "OR ";
-
     y = yylex();
+
+    assert(s);
+
+    cout << " [??::" << s << "] ";
+
+
     while (alligator_scope_depth > 0) {
 
         switch (y) {
-        /* fallthrough */
+
+
+        case MYEOF:
+            cout << "EOF! reached during parse_skip_unimplemented()\n" ;
+            return 1 ;
+            break;
+
+        case DOLLARSTORE_STRING:
+            cout << yylval.sval << " ";
+            break;
+
+        case COMMENT:
+        case CONSTANT:
+        case GLOBAL:
+        case PROPDEF:
+        case ROUTINE:
+        case INSERT_FILE:
+        case PREDICATE_VERB:
+        case PERCENT:
+        case SETG:
+        case ROOM:
+        case RFALSE:
+        case VTYPE:
+        case STRENGTH:
+        case TEXT:
+        case SIZE:
+        case DESCFCN:
+        case CAPACITY:
+        case VALUE:
+        case TVALUE:
+        case LDESC:
+        case FDESC:
+        case ADJECTIVE:
+        case FLAGS:
+        case ACTION:
+        case DESC:
+        case ZIL_FALSE:
+        case MOVE_TO:
+        case OBJECT:
+        case VERSION:
+        case ASSIGN_EQUALS:
+        case SYNONYM:
+        case BUZZ:
+            cout << token_name(y) << " ";
+            break;
+
+
+        case ESCAPED_QUOTE:
+            cout << "\" ";
+            break;
+        case COMMA:
+            cout << ", ";
+            break;
+        case FULLSTOP:
+            cout << ". ";
+            break;
+        case GASSIGNED_QUESTION:
+            cout << "GASSIGNED?" << " ";
+            break;
+        case GLOBAL_VAR_QUERY:
+            cout << yylval.sval << " ";
+            break;
+        case ADDITION:
+            cout << "+ ";
+            break;
+
+        case SUBTRACTION:
+            cout << "-+ ";
+            break;
+
+        case ASTERISK:
+            cout << "* ";
+            break;
+        case BANG:
+            cout << "! " ;
+            break;
+        case APOSTROPHE:
+            cout << "' " ;
+            break;
+        case EQUAL_QUESTION:
+            cout << "=? ";
+            break;
+        case EQUAL_EQUAL_QUESTION:
+            cout << "==? ";
+            break;
+        case OR:
+            cout << "OR ";
+            break;
+        case SET:
+            cout << "SET ";
+            break;
+        case INT:
+            cout << yylval.ival << " ";
+            break;
+        case DOT_TOKEN:
+            cout << yylval.sval << " ";
+            break;
+        case DOT_TOKEN_QUERY:
+            cout << yylval.sval << " ";
+            break;
+        case QUESTION:
+            cout << yylval.sval << " ";
+            break;
+        case COND:
+            cout << "COND ";
+            break;
+        case PARAMETER_LIST_EMPTY:
+            cout << "() ";
+            break;
+        case LF:
+            //cout << "\n";
+            break;
         case GLOBAL_VAR_DEREF:
-            cout << "{" << yylval.sval << "} ";
+            cout << yylval.sval ;
             break;
         case STRING_LITERAL:
-            cout << "{STRING_LITERAL=[" << yylval.sval << "]} ";
+            cout << yylval.sval << " ";
             break;
         case STRING:
-            cout << "{STRING=[" << yylval.sval << "]} ";
+            //cout << "{STRING=[" << yylval.sval << "]} ";
+            cout << "" << yylval.sval << " ";
             break;
         case GT:
             enforce_enclosure_type(GT, __FUNCTION__, __FILE__, __LINE__);
@@ -397,22 +399,27 @@ int parse_or() {
             enforce_enclosure_type(RB, __FUNCTION__, __FILE__, __LINE__);
             break;
         case LT:
+            cout << "\n";
+            insert_indent(alligator_scope_depth + brackets_scope_depth);
             push_enclosure_type(LT);
             break;
         case LB:
+            cout << "\n";
+            insert_indent(alligator_scope_depth + brackets_scope_depth);
             push_enclosure_type(LB);
             break;
         default:
-            cout << "{" << token_name(y) << "} ";
+            cout << "{token=" << token_name(y) << "=" << y << "} ";
             break;
         }
 
         y = yylex();
     }
 
-    assert(NULL);
-    return 1;
+    return parse_recursive(y);
 }
+
+
 
 int parse_set() {
 
@@ -436,44 +443,6 @@ int parse_set() {
     return 1;
 }
 
-
-int parse_defmac() {
-
-    /* set global variable (integer?) */
-
-    int y = 0;
-    assert(alligator_scope_depth >= 0);
-    y = yylex();
-    switch(y) {
-    case QUESTION:
-        break;
-    case STRING:
-        break;
-    default:
-        cout << "parse_defmac: invalid argument #1" << endl;
-        exit(1);
-    }
-
-    cout << "DEFMAC [" << yylval.sval << "] ";
-    y = yylex();
-
-    switch (y) {
-    case LB:
-        parse_nested_bracket_list_of_crap();
-        break;
-    case LT:
-        /* stream of random crap */
-        parse_nested_alligator_list_of_crap();
-        break;
-
-    default:
-        invalid_token(y, __FUNCTION__, __FILE__, __LINE__);
-        exit(1);
-        break;
-    }
-
-    return 1;
-}
 
 int parse_setg() {
 
@@ -507,8 +476,7 @@ int parse_setg() {
         }
         break;
     case LT:
-        /* stream of random crap */
-        parse_nested_alligator_list_of_crap();
+        return parse_skip_unimplemented((const char *) "");
         assert(NULL);
         break;
 
@@ -585,36 +553,64 @@ int parse_recursive(int y) {
 
         case MYEOF:
             /* if this is the last file in the chain, exit on EOF, otherwise pop the most recent file off the stack and continue processing */
-            //cout << "[???] file_stack->count = " << file_stack->count << endl;
+
             if (!file_stack->count) {
                 /* all files on stack have been processed, and we have hit the end of the input */
-                //cout << "[***] Input completed. " << endl;
+                cout << "[***] Input completed. " << endl;
                 exit(0);
             } else {
                 /* there are files remaining on the stack, pop the last one and continue */
-                //cout << "[***] error need to switch back" << endl;
-                cout << "* (file stack depth is currently " << file_stack->count << "; ";
+
+                cout << "\n\t* (file stack depth is currently " << file_stack->count << "; ";
                 stackitem* lsi = stack_pop(file_stack);
                 assert(lsi);
                 assert(lsi->type == LISTITEM_FILEREF);
                 assert(lsi->payload.fr.buffer_state);
-                //cout << "filename: " << lsi->payload.fr.filename << endl;
-                //cout << "offset: " << lsi->payload.fr.offset << endl;
-                //cout << "line_number: " << lsi->payload.fr.line_num << endl;
-                my_yyfilename = strdup(lsi->payload.fr.filename);
+
+
                 current_fh = lsi->payload.fr.handle;
                 line_num = lsi->payload.fr.line_num;
-                cout << "switching back to " << my_yyfilename << ", line " << line_num <<  ")" << endl;
-                //fseek(current_fh, SEEK_SET, lsi->payload.fr.offset);
+
+                /* must be balanced by end of file? */
+
+                assert(alligator_scope_depth == 0);
+                assert(brackets_scope_depth == 0);
+
+                cout << "switching back to " << lsi->payload.fr.filename << ", line " << line_num << " from " << my_yyfilename <<  ")" << endl;
+                my_yyfilename = strdup(lsi->payload.fr.filename);
+
                 yyset_in(current_fh);
                 yyin = current_fh;
-                //yyrestart(current_fh);
+
                 yy_switch_to_buffer( lsi->payload.fr.buffer_state);
-                //yyrestart(current_fh);
+
                 y = yylex();
                 parse_recursive(y);
-                //invalid_token(y, __FUNCTION__, __FILE__, __LINE__);
+
             }
+            break;
+
+
+        /* general unimplemented */
+
+        case GDECL:
+        case COMMENT:
+        case SETG:
+        case PERCENT:
+        case CONSTANT:
+        case PROPDEF:
+        case ROOM:
+        case OBJECT:
+        case GLOBAL:
+        case DIRECTIONS:
+        case SYNTAX:
+        case SYNONYM:
+            if (!parse_skip_unimplemented((const char *) token_name(y))) {
+                cout << "Fatal error" << endl;
+                assert(NULL);
+            }
+            //assert(alligator_scope_depth == 0);
+            //assert(brackets_scope_depth == 0);
             break;
 
 
@@ -629,26 +625,52 @@ int parse_recursive(int y) {
             }
             break;
 
-        case DEFMAC:
-            if (!parse_defmac()) {
+        case ROUTINE:
+            if (!parse_skip_unimplemented((const char *) "ROUTINE")) {
                 cout << "Fatal error" << endl;
                 assert(NULL);
             }
+            break;
+        case DEFMAC:
+            if (!parse_skip_unimplemented((const char *) "DEFMAC")) {
+                cout << "Fatal error" << endl;
+                assert(NULL);
+            }
+            break;
+        case DEFINE:
+            if (!parse_skip_unimplemented((const char *) "DEFINE")) {
+                cout << "Fatal error" << endl;
+                assert(NULL);
+            }
+            break;
 
-        case PRINC:
-            if (!parse_princ()) {
+        case BUZZ:
+            if (!parse_skip_unimplemented((const char *) "BUZZ")) {
+                cout << "Fatal error" << endl;
+                assert(NULL);
+            }
+            break;
+
+
+        case COND:
+            if (!parse_skip_unimplemented((const char *) "COND")) {
                 cout << "Fatal error" << endl;
                 assert(NULL);
             }
             break;
 
         case OR:
-            assert(alligator_scope_depth == 1);
-            if (!parse_or()) {
+            if (!parse_skip_unimplemented("OR")) {
                 cout << "Fatal error" << endl;
                 assert(NULL);
-            };
-            assert(alligator_scope_depth == 0);
+            }
+            break;
+
+        case PRINC:
+            if (!parse_princ()) {
+                cout << "Fatal error" << endl;
+                assert(NULL);
+            }
             break;
 
         case SET:
@@ -660,15 +682,7 @@ int parse_recursive(int y) {
             assert(alligator_scope_depth == 0);
             break;
 
-        case SETG:
-            assert(alligator_scope_depth >= 1);
-            if (!parse_setg()) {
-                cout << "Fatal error" << endl;
-                assert(NULL);
-            };
-            assert(alligator_scope_depth >= 0);
-            break;
-
+      
         case VERSION:
             assert(alligator_scope_depth == 1);
             if (!parse_version()) {
@@ -679,7 +693,9 @@ int parse_recursive(int y) {
             break;
 
 
-
+        case LF:
+            cout << "\n";
+            break;
 
         case LT:
             push_enclosure_type(LT);
@@ -707,10 +723,11 @@ int parse_recursive(int y) {
 
         case STRING_LITERAL:
             assert(current_context == CONTEXT_GLOBAL);
-            cout << yylval.sval << endl;
+            cout << yylval.sval;
             break;
 
         default:
+            cout << "\n\t";
             invalid_token(y, __FUNCTION__, __FILE__, __LINE__);
             break;
         }

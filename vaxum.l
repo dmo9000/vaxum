@@ -27,6 +27,17 @@ YY_BUFFER_STATE get_yy_current_buffer()
 %option noyywrap
 %%
 [ \t]		;
+
+\\\"  { return ESCAPED_QUOTE; }
+\\\.  { return FULLSTOP ; }
+\\\,  { return COMMA; }
+\+    { return ADDITION; }
+\-    { return SUBTRACTION; }
+\*    { return ASTERISK; }
+\'    { return APOSTROPHE; }
+\=    { return ASSIGN_EQUALS; }
+"==?" { return EQUAL_EQUAL_QUESTION; }
+"=?"  { return EQUAL_QUESTION; }
 "<>"		{ return ZIL_FALSE; }
 "<"		{ return LT; }
 ">"		{ return GT; }
@@ -34,20 +45,28 @@ YY_BUFFER_STATE get_yy_current_buffer()
 ")"		{ return RB; }
 \(\)  { return PARAMETER_LIST_EMPTY ; }
 "\\"  { /* ESCAPE CHARACTER - NOT SURE WHAT TO DO */ }
-\\\"  { return ESCAPED_QUOTE; }
+\%    { return PERCENT; }
+\/  ; 
+\;    { return COMMENT; }
 
+\,[-A-Z]+\?         { yylval.sval = strdup(yytext) ; return GLOBAL_VAR_QUERY; }
+\.[-0-9A-Z?]+\?         { yylval.sval = strdup(yytext) ; return DOT_TOKEN_QUERY; }
+\.[-A-Z]+         { yylval.sval = strdup(yytext) ; return DOT_TOKEN; }
+\$[-A-Z]+         { yylval.sval = strdup(yytext) ; return DOLLARSTORE_STRING; }
+[A-Z]+,           { yylval.sval = strdup(yytext) ; return VARIABLE_COMMA; }
 
+;[-A-Z]+          { /* another form of end-of-line comment */ }
+;\".*\" ;         { /* another form of end-of-line comment */ }
 ;\"(\\.|[^"\\])*\" ;
 \"(\\.|[^"\\])*\" {  yylval.slval=strdup(yytext); line_num+=count_char_instance(yytext, '\n'); return STRING_LITERAL; }
 
-DIRECTIONS	{  assert(current_list == NULL);
-               assert(list_length == -1);
-               list_length = 0;
-		           current_list = (char **) malloc((list_length+1) * sizeof(char *)); 
-               current_list[0] = NULL; 
-               return DIRECTIONS; 
+DIRECTIONS	{ return DIRECTIONS; 
                }
+
 "GASSIGNED?"	  { return GASSIGNED_QUESTION; }
+GDECL     { return GDECL; }
+CONSTANT  { return CONSTANT; }
+BUZZ      { return BUZZ; }
 FDESC		  { return FDESC; }
 LDESC		  { return LDESC; }
 DESC		  { return DESC; }
@@ -75,44 +94,17 @@ OR	  { return OR; }
 \!    { return BANG; }
 PRINC   { return PRINC; }
 DEFMAC  { return DEFMAC; }
+DEFINE  { return DEFINE; }
+SYNTAX  { return SYNTAX; }
+FLAGS		{ return FLAGS; }
+PROPDEF { return PROPDEF; }
+SYNONYM		{ return SYNONYM; }
+ADJECTIVE         { return ADJECTIVE; }
 "INSERT-FILE" { return INSERT_FILE; }
 
 
-FLAGS		{ assert(current_list == NULL);
-          assert(list_length == -1);
-          list_length = 0;
-          current_list = (char **) malloc((list_length+1) * sizeof(char *));
-          current_list[0] = NULL;
-          return FLAGS;
-          }
 
-SYNONYM		{ assert(current_list == NULL); 
-            assert(list_length ==-1);
-            list_length = 0;
-		        current_list = (char **) malloc((list_length+1) * sizeof(char *)); 
-            current_list[0] = NULL; 
-		        return SYNONYM; 
-		}
-
-ADJECTIVE         { 
-                  assert(current_list == NULL);
-                  assert(list_length == -1);
-                  list_length = 0;
-                  current_list = (char **) malloc((list_length+1) * sizeof(char *));
-                  current_list[0] = NULL;
-                  return ADJECTIVE;
-                }
-
-
-IN		{ yylval.sval = strdup(yytext); 
-  		  if (list_length != -1) { 
-			  current_list[list_length] = yylval.sval;
-        list_length++;
-        current_list =(char **) realloc(current_list, (list_length+1) * sizeof(char *));
-        current_list[list_length] = NULL;
-        return STRING;
-			}
-			return IN; }
+IN		          { yylval.sval = strdup(yytext) ; return STRING; }
 
 [0-9]+          { yylval.ival = atoi(yytext); return INT; }
 
@@ -120,9 +112,12 @@ IN		{ yylval.sval = strdup(yytext);
 \<RFALSE\>      { return RFALSE; } 
 
 
-[#A-Za-z0-9-]+"?"	{ yylval.sval = strdup(yytext); return QUESTION; }
 
-,[#A-Za-z0-9-]+	{ yylval.sval = strdup(yytext); return GLOBAL_VAR_DEREF; }
+
+[#A-Za-z0-9-]+"?"	{ yylval.sval = strdup(yytext); return QUESTION; }
+[#A-Za-z0-9-]+"??"	{ yylval.sval = strdup(yytext); return DOUBLE_QUESTION; }
+
+,[\?#A-Za-z0-9-]+	{ yylval.sval = strdup(yytext); return GLOBAL_VAR_DEREF; }
 
 [#A-Za-z0-9-]+	{ yylval.sval = strdup(yytext); 
 		  if (list_length != -1) {
@@ -134,13 +129,16 @@ IN		{ yylval.sval = strdup(yytext);
 			}
 			return STRING; }
 
+
+
 \r		{ /* printf("CR!\n"); */ /* return CR;  */}
 
-\n		{ /* printf("LF!\n"); */ ++line_num; /* return LF */; }
+\n		{ /* printf("LF!\n"); */ ++line_num; return LF ; }
 
-\014  { /* FORM FEED */ ; }
+\^L   { /* form feed */ ; }
+\014  { /* form FEED */ ; }
 
-<<EOF>>		{ cout << "<<EOF>> (" << my_yyfilename << ")" << endl ; return MYEOF; }
+<<EOF>>		{ return MYEOF; }
 
-.		{ printf("<!!!> unrecognized token at line %d, length=%d\n[%02x] %c -> %s\n", line_num, strlen(yytext), yytext[0], yytext[0], yytext); exit(1); }
+.		{ cout << "\n<!!!> unrecognized token '" << yytext << "' at " << my_yyfilename << ":" << line_num; exit(1); }
 %%
