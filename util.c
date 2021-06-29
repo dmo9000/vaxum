@@ -34,11 +34,13 @@ int count_char_instance(char *s, char c) {
 }
 
 void insert_indent(int l) {
+    //cout << "<UU" << l << flush;
     int i = 0;
     for (i = 0; i < l; i++) {
         putchar(' ');
         putchar(' ');
     }
+    //cout << "UU>" << flush;
     return;
 }
 
