@@ -60,10 +60,19 @@ YY_BUFFER_STATE get_yy_current_buffer()
 ;\"(\\.|[^"\\])*\" ;
 \"(\\.|[^"\\])*\" {  yylval.slval=strdup(yytext); line_num+=count_char_instance(yytext, '\n'); return STRING_LITERAL; }
 
-DIRECTIONS	{ return DIRECTIONS; 
-               }
+DIRECTIONS	{ return DIRECTIONS; }
 
+
+\[          { return LSB; }
+\]          { return RSB; }
+
+
+ENABLE\!-INITIAL    {} 
+DISABLE\!-INITIAL    {} 
+ON\!-INITIAL    {} 
+OFF\!-INITIAL    {} 
 "GASSIGNED?"	  { return GASSIGNED_QUESTION; }
+BLOAT     { return BLOAT; }
 GDECL     { return GDECL; }
 CONSTANT  { return CONSTANT; }
 BUZZ      { return BUZZ; }
@@ -99,7 +108,8 @@ SYNTAX  { return SYNTAX; }
 FLAGS		{ return FLAGS; }
 PROPDEF { return PROPDEF; }
 SYNONYM		{ return SYNONYM; }
-ADJECTIVE         { return ADJECTIVE; }
+ADJECTIVE  { return ADJECTIVE; }
+SNAME { return SNAME; }
 "INSERT-FILE" { return INSERT_FILE; }
 
 
@@ -119,26 +129,18 @@ IN		          { yylval.sval = strdup(yytext) ; return STRING; }
 
 ,[\?#A-Za-z0-9-]+	{ yylval.sval = strdup(yytext); return GLOBAL_VAR_DEREF; }
 
-[#A-Za-z0-9-]+	{ yylval.sval = strdup(yytext); 
-		  if (list_length != -1) {
-			current_list[list_length] = yylval.sval;
-			list_length++;
-			current_list =(char **) realloc(current_list, (list_length+1) * sizeof(char *));	
-			current_list[list_length] = NULL;
-			return STRING; 
-			}
-			return STRING; }
+[&#A-Za-z0-9-]+	{ yylval.sval = strdup(yytext); return STRING; }
 
 
 
 \r		{ /* printf("CR!\n"); */ /* return CR;  */}
 
 \n		{ /* printf("LF!\n"); */ ++line_num; return LF ; }
-
+\^\/L { /* form feed */}
 \^L   { /* form feed */ ; }
-\014  { /* form FEED */ ; }
+\014  { /* form feed */ ; }
 
-<<EOF>>		{ return MYEOF; }
+<<EOF>>		{ /* cout << "!! EOF !!\n" << flush */; return MYEOF; }
 
 .		{ cout << "\n<!!!> unrecognized token '" << yytext << "' at " << my_yyfilename << ":" << line_num; exit(1); }
 %%

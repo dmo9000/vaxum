@@ -7,7 +7,40 @@
 #include "stack.h"
 #include "flex.h"
 
+#define DEBUG_NONE                  0
+#define DEBUG_FILEIO                1
+#define DEBUG_UNIMPLEMENTED         2
+#define DEBUG_SCOPE                 3
+#define DEBUG_SCOPEDEPTH            4
+#define DEBUG_MISSINGTOKEN          5
+#define DEBUG_LINENUMBERS           6
+
+#define ANSI_NONE       ( ansi_colour ? "\033[0m" : "" )
+#define ANSI_BLACK      ( ansi_colour ? "\033[30m" : "" )
+#define ANSI_RED        ( ansi_colour ? "\033[31m" : "" )
+#define ANSI_GREEN      ( ansi_colour ? "\033[32m" : "" )
+#define ANSI_YELLOW     ( ansi_colour ? "\033[33m" : "" )
+#define ANSI_BLUE       ( ansi_colour ? "\033[34m" : "" )
+#define ANSI_MAGENTA    ( ansi_colour ? "\033[35m" : "" )
+#define ANSI_CYAN       ( ansi_colour ? "\033[36m" : "" )
+#define ANSI_WHITE      ( ansi_colour ? "\033[37m" : "" )
+
+
+#define ANSI_BRIGHT_BLACK      ( ansi_colour ? "\033[90m" : "" )
+#define ANSI_BRIGHT_RED        ( ansi_colour ? "\033[91m" : "" )
+#define ANSI_BRIGHT_GREEN      ( ansi_colour ? "\033[92m" : "" )
+#define ANSI_BRIGHT_YELLOW     ( ansi_colour ? "\033[93m" : "" )
+#define ANSI_BRIGHT_BLUE       ( ansi_colour ? "\033[94m" : "" )
+#define ANSI_BRIGHT_MAGENTA    ( ansi_colour ? "\033[95m" : "" )
+#define ANSI_BRIGHT_CYAN       ( ansi_colour ? "\033[96m" : "" )
+#define ANSI_BRIGHT_WHITE      ( ansi_colour ? "\033[97m" : "" )
+
+
 using namespace std;
+
+extern int gdl;
+bool ansi_colour = false;
+
 
 extern int yylex();
 extern YYSTYPE yylval;
@@ -19,6 +52,7 @@ extern YY_BUFFER_STATE get_yy_current_buffer();
 
 int alligator_scope_depth = 0;
 int brackets_scope_depth = 0;
+int square_brackets_scope_depth = 0;
 
 extern char *my_yyfilename;
 extern int line_num;
@@ -35,6 +69,18 @@ int parse_or();
 int parse_set();
 int parse_setg();
 
+const char *current_ansi_colour = "";
+const char *last_ansi_colour = "";
+
+void set_ansi_colour(const char *c, const char *function, const char *file, int line)
+{
+    last_ansi_colour = current_ansi_colour;
+    current_ansi_colour = c;
+    //cout << c << "\nnew ansi_colour (" << function << ":" << file << "," << line << ")\n" << flush;
+    //assert(NULL);
+    cout << c << flush;
+    return;
+}
 
 bool push_enclosure_type(int y)
 {
@@ -46,7 +92,14 @@ bool push_enclosure_type(int y)
         new_enclosure_type->payload.i16 = LB;
         assert(stack_push(scope_stack, new_enclosure_type));
         brackets_scope_depth++;
-        cout << "({" << brackets_scope_depth << "}";
+        if (gdl >= DEBUG_UNIMPLEMENTED) set_ansi_colour(ANSI_GREEN, __FUNCTION__, __FILE__, __LINE__);
+        if (gdl >= DEBUG_SCOPEDEPTH) {
+            cout << "({" << brackets_scope_depth << "}";
+        } else {
+            if (gdl >= DEBUG_SCOPE) cout << "(";
+        }
+
+
         return true;
         break;
     case LT:
@@ -55,7 +108,30 @@ bool push_enclosure_type(int y)
         new_enclosure_type->payload.i16 = LT;
         assert(stack_push(scope_stack, new_enclosure_type));
         alligator_scope_depth++;
-        cout << "<{" << alligator_scope_depth << "}";
+
+
+        if (gdl >= DEBUG_UNIMPLEMENTED) set_ansi_colour(ANSI_BLUE, __FUNCTION__, __FILE__, __LINE__);
+        if (gdl >= DEBUG_SCOPEDEPTH) {
+            cout << "<{" << alligator_scope_depth << "}";
+        } else {
+            if (gdl >= DEBUG_SCOPE) cout << "<";
+        }
+
+        return true;
+        break;
+    case LSB:
+        new_enclosure_type = stackitem_new();
+        new_enclosure_type->type = LISTITEM_ENCLOSURE;
+        new_enclosure_type->payload.i16 = LSB;
+        assert(stack_push(scope_stack, new_enclosure_type));
+        square_brackets_scope_depth++;
+        if (gdl >= DEBUG_UNIMPLEMENTED) set_ansi_colour(ANSI_RED, __FUNCTION__, __FILE__, __LINE__);
+        if (gdl >= DEBUG_SCOPEDEPTH) {
+            cout << "[{" << square_brackets_scope_depth << "}";
+        } else {
+            if (gdl >= DEBUG_SCOPE) cout << "[";
+        }
+
         return true;
         break;
     default:
@@ -70,6 +146,7 @@ bool push_enclosure_type(int y)
 bool enforce_enclosure_type(int y, const char *function, const char *file, int line)
 {
     stackitem* last_enclosure = NULL;
+    stackitem *prev_enclosure = NULL;
     assert(scope_stack);
 
     if (!scope_stack->count) {
@@ -85,7 +162,36 @@ bool enforce_enclosure_type(int y, const char *function, const char *file, int l
     case GT:
         if (last_enclosure->payload.i16 == LT) {
             alligator_scope_depth --;
-            cout << "{" << alligator_scope_depth << "}>";
+
+            const char *prev_colour = (const char *) "";
+            prev_enclosure = stack_peek(scope_stack);
+            if (! prev_enclosure) {
+                /* at outer scope ? */
+
+            } else {
+                assert(prev_enclosure->type == LISTITEM_ENCLOSURE);
+                //cout << "token_type " << token_name(last_enclosure->payload.i16) << "\n" << flush;
+                //assert(NULL);
+
+                switch(prev_enclosure->payload.i16) {
+                case LB:
+                    prev_colour = (const char *) ANSI_GREEN;
+                    break;
+                case LT:
+                    prev_colour = (const char *) ANSI_BLUE;
+                    break;
+                default:
+                    cout << "+++ cannot get colour for outer scope\n" << flush;
+                    assert(NULL);
+                }
+            }
+
+            if (gdl >= DEBUG_SCOPEDEPTH) {
+                cout <<  "{" << alligator_scope_depth << "}>" << prev_colour;
+            } else {
+                if (gdl >= DEBUG_SCOPE) cout  << ">" << prev_colour;
+            }
+
             return true;
         } else {
             cout << "\n\t+++ gt: mismatched scope enclosure, expected '>', got '" << token_name(y) << "'\n" << flush;
@@ -95,10 +201,41 @@ bool enforce_enclosure_type(int y, const char *function, const char *file, int l
         }
         return false;
         break;
+
     case RB:
         if (last_enclosure->payload.i16 == LB) {
             brackets_scope_depth --;
-            cout << "{" << brackets_scope_depth << "})";
+
+            const char *prev_colour = (const char *) "";
+            prev_enclosure = stack_peek(scope_stack);
+            if (! prev_enclosure) {
+                /* at outer scope ? */
+
+            } else {
+                assert(prev_enclosure->type == LISTITEM_ENCLOSURE);
+                //cout << "token_type " << token_name(last_enclosure->payload.i16) << "\n";
+                //assert(NULL);
+                switch(prev_enclosure->payload.i16) {
+                case LB:
+                    prev_colour = (const char *) ANSI_GREEN;
+                    break;
+                case LT:
+                    prev_colour = (const char *) ANSI_BLUE;
+                    break;
+                default:
+                    cout << "+++ cannot get colour for outer scope\n" << flush;
+                    assert(NULL);
+                }
+            }
+
+            if (gdl >= DEBUG_SCOPEDEPTH) {
+                cout  << "{" << brackets_scope_depth << "})" ;
+                if (gdl >= DEBUG_UNIMPLEMENTED) set_ansi_colour(prev_colour, __FUNCTION__, __FILE__, __LINE__);
+            } else {
+                if (gdl >= DEBUG_SCOPE) cout  << ")";
+                if (gdl >= DEBUG_UNIMPLEMENTED) set_ansi_colour(prev_colour, __FUNCTION__, __FILE__, __LINE__);
+            }
+
             return true;
         } else {
             cout << "\n\t+++ rb: mismatched scope enclosure, expected ')', got '" << token_name(y) << "'\n" << flush;
@@ -108,6 +245,50 @@ bool enforce_enclosure_type(int y, const char *function, const char *file, int l
         }
         return false;
         break;
+
+    case RSB:
+        if (last_enclosure->payload.i16 == LSB) {
+            square_brackets_scope_depth --;
+
+            const char *prev_colour = (const char *) "";
+            prev_enclosure = stack_peek(scope_stack);
+            if (! prev_enclosure) {
+                /* at outer scope ? */
+                assert(NULL);
+            } else {
+                assert(prev_enclosure->type == LISTITEM_ENCLOSURE);
+                //cout << "token_type " << token_name(last_enclosure->payload.i16) << "\n";
+                //assert(NULL);
+                switch(prev_enclosure->payload.i16) {
+                case LB:
+                    prev_colour = (const char *) ANSI_GREEN;
+                    break;
+                case LT:
+                    prev_colour = (const char *) ANSI_BLUE;
+                    break;
+                default:
+                    cout << "+++ cannot get colour for outer scope\n" << flush;
+                    assert(NULL);
+                }
+            }
+
+            if (gdl >= DEBUG_SCOPEDEPTH) {
+                cout << "{" << square_brackets_scope_depth << "}]";
+            } else {
+                if (gdl >= DEBUG_SCOPE) cout << "])";
+            }
+
+            return true;
+        } else {
+            cout << "\n\t+++ rsb: mismatched scope enclosure, expected ']', got '" << token_name(y) << "'\n" << flush;
+            cout << "\t\t+++     at " << my_yyfilename << ":" << line_num << flush;
+            assert(NULL);
+            return false;
+        }
+        return false;
+        break;
+
+
     default:
         cout << "\n+++ cannot pop enclosure type '" << token_name(y) << "'\n";
         exit(1);
@@ -174,7 +355,7 @@ int parse_insert_file() {
     int y = 0;
     y = yylex();
     assert(y == STRING_LITERAL);
-    cout << "INSERT-FILE " << yylval.sval << " ";
+    if (gdl >= DEBUG_FILEIO) cout << "INSERT-FILE " << yylval.sval << " ";
     working_path=dirname(strdup(my_yyfilename));
 
     /* dont know what this third argument is for yet */
@@ -192,16 +373,16 @@ int parse_insert_file() {
     p+=strlen(filename);
     strncat(p, ".zil", 5);
     p+=4;
-    cout << "[" << new_full_file_name << "] ";
+    if (gdl >= DEBUG_FILEIO) cout << "[" << new_full_file_name << "] ";
 
     y = yylex();
     assert(y == STRING);
     assert(yylval.sval[0] == 'T' && strlen(yylval.sval) == 1);
-    cout << "T";
+    if (gdl >= DEBUG_FILEIO) cout << "T";
     y = yylex();
 
     assert(enforce_enclosure_type(GT, __FUNCTION__, __FILE__, __LINE__));
-    cout << "\n\n";
+    if (gdl >= DEBUG_FILEIO) cout << "\n";
 
 
     /* create new fileref */
@@ -212,11 +393,8 @@ int parse_insert_file() {
     fr->line_num = line_num;
     fr->handle = current_fh;
     fr->offset = ftell(current_fh);
-    //fr->buffer_state = yy_create_buffer(fr->handle, YY_BUF_SIZE);
-    //fr->buffer_state = buffer_state;
-    fr->buffer_state = get_yy_current_buffer();
 
-    //buffer_state = yy_create_buffer( current_fh, YY_BUF_SIZE ));
+    fr->buffer_state = get_yy_current_buffer();
 
     stackitem* nsi = stackitem_new();
     assert(nsi);
@@ -227,22 +405,19 @@ int parse_insert_file() {
     assert(nsi->payload.fr.line_num == fr->line_num);
     assert(stack_push(file_stack, nsi));
 
-    //cout << "old_filehandle: " << current_fh << endl;
     current_fh = NULL;
     current_fh = fopen(new_full_file_name, "r");
     assert(current_fh);
     my_yyfilename = strdup(new_full_file_name);
     line_num = 1;
 
-
-    //cout << "+++ switched to input file " << new_full_file_name << endl;
     yyset_in(current_fh);
     yyin = current_fh;
 
     buffer_state = yy_create_buffer( current_fh, YY_BUF_SIZE );
     yy_switch_to_buffer( buffer_state);
 
-    // cout << "new_filehandle: " << current_fh << endl;
+    cerr << "Parsing " << my_yyfilename << " ... \n" << flush;
     y= yylex();
     parse_recursive(y);
 
@@ -261,26 +436,41 @@ int parse_skip_unimplemented(const char *s)
 {
     int y = 0;
     y = yylex();
+    char *bn = NULL;
 
     assert(s);
 
-    cout << " [??::" << s << "] ";
+    bn = basename (my_yyfilename);
+    assert (bn);
 
+    if (gdl >= DEBUG_UNIMPLEMENTED) cout << ANSI_RED << "[::" << s << " (" << bn << "," << line_num << ")] ";
+    if (gdl == DEBUG_UNIMPLEMENTED) cout << "\n";
+
+    /* should this be while any depth? remains to be seen, as the alligator brackets always seem to be outermost */
 
     while (alligator_scope_depth > 0) {
+        /* in case it got reset */
+        if (gdl >= DEBUG_UNIMPLEMENTED) {
+            set_ansi_colour(current_ansi_colour, __FUNCTION__, __FILE__, __LINE__);
+        }
 
         switch (y) {
 
 
         case MYEOF:
-            cout << "EOF! reached during parse_skip_unimplemented()\n" ;
+            //cout << "EOF! reached during parse_skip_unimplemented()\n" ;
             return 1 ;
             break;
 
+
         case DOLLARSTORE_STRING:
-            cout << yylval.sval << " ";
+            if (gdl >= DEBUG_UNIMPLEMENTED) cout << yylval.sval << " ";
             break;
 
+
+
+        case BLOAT:
+        case PRINC:
         case COMMENT:
         case CONSTANT:
         case GLOBAL:
@@ -313,84 +503,87 @@ int parse_skip_unimplemented(const char *s)
         case ASSIGN_EQUALS:
         case SYNONYM:
         case BUZZ:
-            cout << token_name(y) << " ";
+            if (gdl > DEBUG_UNIMPLEMENTED) cout << token_name(y) << " ";
             break;
 
 
         case ESCAPED_QUOTE:
-            cout << "\" ";
+            if (gdl > DEBUG_UNIMPLEMENTED) cout << "\" ";
             break;
         case COMMA:
-            cout << ", ";
+            if (gdl > DEBUG_UNIMPLEMENTED)
+                cout << ", ";
             break;
         case FULLSTOP:
-            cout << ". ";
+            if (gdl > DEBUG_UNIMPLEMENTED) cout << ". ";
             break;
         case GASSIGNED_QUESTION:
-            cout << "GASSIGNED?" << " ";
+            if (gdl > DEBUG_UNIMPLEMENTED) cout << "GASSIGNED?" << " ";
             break;
         case GLOBAL_VAR_QUERY:
-            cout << yylval.sval << " ";
+            if (gdl > DEBUG_UNIMPLEMENTED) cout << yylval.sval << " ";
             break;
         case ADDITION:
-            cout << "+ ";
+            if (gdl > DEBUG_UNIMPLEMENTED) cout << "+ ";
             break;
 
         case SUBTRACTION:
-            cout << "-+ ";
+            if (gdl > DEBUG_UNIMPLEMENTED) cout << "-+ ";
             break;
 
         case ASTERISK:
-            cout << "* ";
+            if (gdl > DEBUG_UNIMPLEMENTED) cout << "* ";
             break;
         case BANG:
-            cout << "! " ;
+            if (gdl > DEBUG_UNIMPLEMENTED)cout << "! " ;
             break;
         case APOSTROPHE:
-            cout << "' " ;
+            if (gdl > DEBUG_UNIMPLEMENTED) cout << "' " ;
             break;
         case EQUAL_QUESTION:
-            cout << "=? ";
+            if (gdl > DEBUG_UNIMPLEMENTED) cout << "=? ";
             break;
         case EQUAL_EQUAL_QUESTION:
-            cout << "==? ";
+            if (gdl > DEBUG_UNIMPLEMENTED) cout << "==? ";
             break;
         case OR:
-            cout << "OR ";
+            if (gdl > DEBUG_UNIMPLEMENTED)  cout << "OR ";
             break;
         case SET:
-            cout << "SET ";
+            if (gdl > DEBUG_UNIMPLEMENTED) cout << "SET ";
             break;
         case INT:
-            cout << yylval.ival << " ";
+            if (gdl > DEBUG_UNIMPLEMENTED) cout << yylval.ival << " ";
             break;
         case DOT_TOKEN:
-            cout << yylval.sval << " ";
+            if (gdl > DEBUG_UNIMPLEMENTED) cout << yylval.sval << " ";
             break;
         case DOT_TOKEN_QUERY:
-            cout << yylval.sval << " ";
+            if (gdl > DEBUG_UNIMPLEMENTED) cout << yylval.sval << " ";
             break;
         case QUESTION:
-            cout << yylval.sval << " ";
+            if (gdl > DEBUG_UNIMPLEMENTED) cout << yylval.sval << " ";
             break;
         case COND:
-            cout << "COND ";
+            if (gdl > DEBUG_UNIMPLEMENTED) cout << "COND ";
             break;
         case PARAMETER_LIST_EMPTY:
-            cout << "() ";
+            if (gdl > DEBUG_UNIMPLEMENTED) cout << "() ";
             break;
         case LF:
-            //cout << "\n";
             break;
         case GLOBAL_VAR_DEREF:
-            cout << yylval.sval ;
+            if (gdl > DEBUG_UNIMPLEMENTED) cout << yylval.sval ;
             break;
         case STRING_LITERAL:
-            cout << yylval.sval << " ";
+
+            if (gdl >= DEBUG_UNIMPLEMENTED) set_ansi_colour(ANSI_YELLOW, __FUNCTION__, __FILE__, __LINE__);
+            if (gdl > DEBUG_UNIMPLEMENTED) cout << yylval.sval << " ";
+            if (gdl >= DEBUG_UNIMPLEMENTED) set_ansi_colour(last_ansi_colour, __FUNCTION__, __FILE__, __LINE__);
+
             break;
         case STRING:
-            //cout << "{STRING=[" << yylval.sval << "]} ";
-            cout << "" << yylval.sval << " ";
+            if (gdl > DEBUG_UNIMPLEMENTED) cout << "" << yylval.sval << " ";
             break;
         case GT:
             enforce_enclosure_type(GT, __FUNCTION__, __FILE__, __LINE__);
@@ -398,18 +591,39 @@ int parse_skip_unimplemented(const char *s)
         case RB:
             enforce_enclosure_type(RB, __FUNCTION__, __FILE__, __LINE__);
             break;
+        case RSB:
+            enforce_enclosure_type(RSB, __FUNCTION__, __FILE__, __LINE__);
+            break;
         case LT:
-            cout << "\n";
-            insert_indent(alligator_scope_depth + brackets_scope_depth);
+            if (gdl > DEBUG_UNIMPLEMENTED) {
+                cout << "\n";
+            }
+            if (gdl >= DEBUG_LINENUMBERS) {
+                set_ansi_colour(ANSI_WHITE, __FUNCTION__, __FILE__, __LINE__);
+                cout << "\n" << basename(my_yyfilename) << "," << line_num << ": ";
+                set_ansi_colour(last_ansi_colour, __FUNCTION__, __FILE__, __LINE__);
+            }
+            if (gdl > DEBUG_UNIMPLEMENTED) {
+              insert_indent(alligator_scope_depth + brackets_scope_depth);
+            }
             push_enclosure_type(LT);
+
             break;
         case LB:
-            cout << "\n";
-            insert_indent(alligator_scope_depth + brackets_scope_depth);
+            if (gdl > DEBUG_UNIMPLEMENTED) cout << "\n";
+            if (gdl > DEBUG_UNIMPLEMENTED) insert_indent(alligator_scope_depth + brackets_scope_depth);
             push_enclosure_type(LB);
             break;
+        case LSB:
+            if (gdl > DEBUG_UNIMPLEMENTED) cout << "\n";
+            if (gdl = DEBUG_UNIMPLEMENTED) insert_indent(alligator_scope_depth + brackets_scope_depth);
+            push_enclosure_type(LSB);
+            break;
+
+            break;
+
         default:
-            cout << "{token=" << token_name(y) << "=" << y << "} ";
+            if (gdl > DEBUG_MISSINGTOKEN) cout << "{token=" << token_name(y) << "=" << y << "} ";
             break;
         }
 
@@ -525,7 +739,10 @@ int parse_main() {
 
     yy_switch_to_buffer(buffer_state);
 
+    cerr << "Parsing " << my_yyfilename << " ... \n" << flush;
+
     int y = yylex();
+
     return parse_recursive(y);
 }
 
@@ -545,23 +762,23 @@ int parse_recursive(int y) {
         assert(brackets_scope_depth >= 0);
         assert(current_context == CONTEXT_GLOBAL);
 
-        //cout << "current position in " << my_yyfilename << " is " << ftell(current_fh) << endl;
+        //cerr << "current position in " << my_yyfilename << " is " << ftell(current_fh) << endl << flush;
 
         switch (y) {
-
-
 
         case MYEOF:
             /* if this is the last file in the chain, exit on EOF, otherwise pop the most recent file off the stack and continue processing */
 
             if (!file_stack->count) {
                 /* all files on stack have been processed, and we have hit the end of the input */
-                cout << "[***] Input completed. " << endl;
+                set_ansi_colour(ANSI_YELLOW, __FUNCTION__, __FILE__, __LINE__);
+                cout << "\n\n" << "[***] Input completed. " ;
+                set_ansi_colour(ANSI_NONE, __FUNCTION__, __FILE__, __LINE__);
                 exit(0);
             } else {
                 /* there are files remaining on the stack, pop the last one and continue */
 
-                cout << "\n\t* (file stack depth is currently " << file_stack->count << "; ";
+                // cout << "\n\t* (file stack depth is currently " << file_stack->count << "; ";
                 stackitem* lsi = stack_pop(file_stack);
                 assert(lsi);
                 assert(lsi->type == LISTITEM_FILEREF);
@@ -576,7 +793,7 @@ int parse_recursive(int y) {
                 assert(alligator_scope_depth == 0);
                 assert(brackets_scope_depth == 0);
 
-                cout << "switching back to " << lsi->payload.fr.filename << ", line " << line_num << " from " << my_yyfilename <<  ")" << endl;
+               // cerr << "switching back to " << lsi->payload.fr.filename << ", line " << line_num << " from " << my_yyfilename <<  ")" << endl;
                 my_yyfilename = strdup(lsi->payload.fr.filename);
 
                 yyset_in(current_fh);
@@ -593,6 +810,16 @@ int parse_recursive(int y) {
 
         /* general unimplemented */
 
+        case QUESTION:
+        case PRINC:
+        case SET:
+        case VERSION:
+        case BLOAT:
+        case BUZZ:
+        case COND:
+        case OR:
+        case ROUTINE:
+        case SNAME:
         case GDECL:
         case COMMENT:
         case SETG:
@@ -604,19 +831,15 @@ int parse_recursive(int y) {
         case GLOBAL:
         case DIRECTIONS:
         case SYNTAX:
+        case DEFMAC:
+        case DEFINE:
         case SYNONYM:
             if (!parse_skip_unimplemented((const char *) token_name(y))) {
                 cout << "Fatal error" << endl;
                 assert(NULL);
             }
-            //assert(alligator_scope_depth == 0);
-            //assert(brackets_scope_depth == 0);
             break;
 
-
-        case QUESTION:
-            cout << "QUESTION [" << yylval.sval << "]" ;
-            break;
 
         case INSERT_FILE:
             if (!parse_insert_file()) {
@@ -625,76 +848,15 @@ int parse_recursive(int y) {
             }
             break;
 
-        case ROUTINE:
-            if (!parse_skip_unimplemented((const char *) "ROUTINE")) {
-                cout << "Fatal error" << endl;
-                assert(NULL);
-            }
-            break;
-        case DEFMAC:
-            if (!parse_skip_unimplemented((const char *) "DEFMAC")) {
-                cout << "Fatal error" << endl;
-                assert(NULL);
-            }
-            break;
-        case DEFINE:
-            if (!parse_skip_unimplemented((const char *) "DEFINE")) {
-                cout << "Fatal error" << endl;
-                assert(NULL);
-            }
-            break;
-
-        case BUZZ:
-            if (!parse_skip_unimplemented((const char *) "BUZZ")) {
-                cout << "Fatal error" << endl;
-                assert(NULL);
-            }
-            break;
-
-
-        case COND:
-            if (!parse_skip_unimplemented((const char *) "COND")) {
-                cout << "Fatal error" << endl;
-                assert(NULL);
-            }
-            break;
-
-        case OR:
-            if (!parse_skip_unimplemented("OR")) {
-                cout << "Fatal error" << endl;
-                assert(NULL);
-            }
-            break;
-
-        case PRINC:
-            if (!parse_princ()) {
-                cout << "Fatal error" << endl;
-                assert(NULL);
-            }
-            break;
-
-        case SET:
-            assert(alligator_scope_depth == 1);
-            if (!parse_set()) {
-                cout << "Fatal error" << endl;
-                assert(NULL);
-            };
-            assert(alligator_scope_depth == 0);
-            break;
-
-      
-        case VERSION:
-            assert(alligator_scope_depth == 1);
-            if (!parse_version()) {
-                cout << "Fatal error" << endl;
-                assert(NULL);
-            };
-            //assert(alligator_scope_depth == 0);
-            break;
-
-
         case LF:
-            cout << "\n";
+
+            if (gdl >= DEBUG_LINENUMBERS) {
+                set_ansi_colour(ANSI_WHITE, __FUNCTION__, __FILE__, __LINE__);
+                cerr << "\n" << basename(my_yyfilename) << "," << line_num << ": " << flush;
+                set_ansi_colour(ANSI_NONE, __FUNCTION__, __FILE__, __LINE__);
+            } else if (gdl > DEBUG_UNIMPLEMENTED) {
+                cerr << "\n" << flush;
+            }
             break;
 
         case LT:
@@ -706,6 +868,12 @@ int parse_recursive(int y) {
                 cout << "can't enforce enclosure type '" << token_name(GT) << "'\n";
                 assert(NULL);
             }
+            break;
+
+        case RSB:
+            assert(NULL);
+        case LSB:
+            assert(NULL);
             break;
 
 
@@ -723,11 +891,12 @@ int parse_recursive(int y) {
 
         case STRING_LITERAL:
             assert(current_context == CONTEXT_GLOBAL);
-            cout << yylval.sval;
+            if (gdl >= DEBUG_SCOPE) cout << yylval.sval;
             break;
 
         default:
             cout << "\n\t";
+            print_line_from_file(current_fh, my_yyfilename, line_num);
             invalid_token(y, __FUNCTION__, __FILE__, __LINE__);
             break;
         }

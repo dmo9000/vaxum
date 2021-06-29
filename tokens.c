@@ -15,10 +15,27 @@ const char *token_name(int t)
 
 
     switch(t) {
+    case LB:
+        return ((const char *) "(");
+        break;
+    case LSB:
+        return ((const char *) "[");
+        break;
+    case RSB:
+        return ((const char *) "]");
+        break;
+    case BLOAT:
+        /* required for Deadline */
+        return ((const char *) "BLOAT");
+        break;
+    case SNAME:
+        /* required for Zork3, Enchanter */
+        return ((const char *) "SNAME");
+        break;
 
-	case VARIABLE_COMMA:
-		return ((const char *) "VARIABLE_COMMA");
-		break;
+    case VARIABLE_COMMA:
+        return ((const char *) "VARIABLE_COMMA");
+        break;
 
     case GDECL:
         return ((const char *) "GDECL");

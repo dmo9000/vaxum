@@ -7,6 +7,7 @@
 # define YYTOKENTYPE
 enum yytokentype
 {
+    /* these are all seen in Zork 1, 2 and 3 sources */
     CR = 258,
     LF = 259,
     MYEOF = 260,
@@ -81,7 +82,13 @@ enum yytokentype
     CONSTANT = 329,
     DOUBLE_QUESTION = 330,
     GDECL = 331,
-    VARIABLE_COMMA = 332
+    VARIABLE_COMMA = 332,
+    /* first observed occuring in Zork 3, Witness, Enchanter */
+    SNAME = 333,
+    BLOAT = 334,
+    /* first observed occuring in Zork 3 */ 
+    LSB = 335,              
+    RSB = 336 
 
 };
 #endif

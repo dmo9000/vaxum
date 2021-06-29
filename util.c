@@ -7,7 +7,7 @@ using namespace std;
 
 #define MAX_LINELEN 65536
 
-char *print_line_from_file(FILE *x, int line_num) {
+char *print_line_from_file(FILE *x, const char *filename, int line_num) {
     int i = 0;
     static char line[MAX_LINELEN];
     assert(x != NULL);
@@ -17,7 +17,7 @@ char *print_line_from_file(FILE *x, int line_num) {
         memset(&line, 0, MAX_LINELEN);
         fgets((char *)&line, MAX_LINELEN - 1, x);
     }
-    cout << "<***> " << line << endl;
+    cout << filename << "::" << line_num << ": " << line << endl;
     return (char *)&line;
 }
 

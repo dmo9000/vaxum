@@ -57,6 +57,15 @@ stackitem* stack_pop(stack *s)
 }
 
 
+stackitem* stack_peek(stack *s)
+{
+
+    assert(s);
+    /* callers responsibility to check if this returns NULL */
+    return (s->head);
+
+}
+
 bool stack_push(stack* s, stackitem* si)
 {
 

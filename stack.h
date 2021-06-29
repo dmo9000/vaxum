@@ -6,6 +6,7 @@ typedef struct _2listitem stackitem;
 stack *stack_new();
 bool stack_push(stack*, stackitem*);
 stackitem *stack_pop(stack *);
+stackitem *stack_peek(stack *);
 
 stackitem *stackitem_new();
 
