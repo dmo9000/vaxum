@@ -4,7 +4,7 @@ CPPFLAGS = -g -ggdb
 all: vaxum
 
 SRCS=lex.yy.c main.c parser.c
-OBJS=lex.yy.o util.o main.o tokens.o parser.o stack.o list.o tree.o
+OBJS=lex.yy.o util.o main.o tokens.o parser.o stack.o list.o tree.o interface.o
 
 %.o: %.c
 	$(CXX) ${CPPFLAGS} -c $< -o $@

@@ -1,11 +1,16 @@
 #pragma once
+#include <iostream>
+#include <cstdio>
 #include <cstdint>
+#include <cstring>
+#include <cassert>
 
 enum _treeitemtype {
     TREEITEM_NULL,
     TREEITEM_INT16,
     TREEITEM_INT32,
     TREEITEM_STRING,
+    TREEITEM_SUBTREE, 
     TREEITEM_UNKNOWN
 };
 
@@ -13,6 +18,7 @@ union _treeitempayload {
     int16_t i16;
     int32_t i32;
     char *str;
+    struct _tree *t;
 };
 
 struct _treeitem {
@@ -32,3 +38,6 @@ struct _tree {
 
 typedef struct _treeitem treeitem;
 typedef struct _tree tree;
+
+
+tree* tree_new(const char *);

@@ -16,7 +16,7 @@ FILE *current_fh;
 extern YYSTYPE yylval;
 
 extern bool ansi_colour;
-
+extern bool go_interactive;
 
 
 
@@ -33,13 +33,15 @@ int main(int argc, char *argv[])
 
     for(;;)
     {
-        switch(getopt(argc, argv, "d:axh")) // note the colon (:) to indicate that 'b' has a parameter and is not a switch
+        switch(getopt(argc, argv, "d:axhi")) // note the colon (:) to indicate that 'b' has a parameter and is not a switch
         {
         case 'd':
             //cout << "Global debug level is set to " << optarg << "\n";
             gdl = atoi(optarg);
             continue;
-
+        case 'i':
+            go_interactive = true;
+            continue;
         case 'a':
             /* ansi colour enabled */
             ansi_colour = true;

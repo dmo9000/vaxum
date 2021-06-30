@@ -15,6 +15,10 @@ const char *token_name(int t)
 
 
     switch(t) {
+
+	case LF: 
+		return ((const char *) "LF");
+		break;
     case LB:
         return ((const char *) "(");
         break;

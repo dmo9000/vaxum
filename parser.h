@@ -88,7 +88,8 @@ enum yytokentype
     BLOAT = 334,
     /* first observed occuring in Zork 3 */ 
     LSB = 335,              
-    RSB = 336 
+    RSB = 336,
+    ZIL_EXIT = 337
 
 };
 #endif
