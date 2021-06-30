@@ -211,9 +211,20 @@ bool enforce_enclosure_type(int y, const char *function, const char *file, int l
             }
 
             if (gdl >= DEBUG_SCOPENUMBERS) {
-                cerr <<  "{" << alligator_scope_depth << "}> " << prev_colour;
+                set_ansi_colour(ANSI_BLUE, __FUNCTION__, __FILE__, __LINE__);
+                cerr  << "{" << alligator_scope_depth << "}> " ;
+                if (gdl >= DEBUG_UNIMPLEMENTED) {
+                    set_ansi_colour(prev_colour, __FUNCTION__, __FILE__, __LINE__);
+                }
             } else {
-                if (gdl >= DEBUG_SCOPE) cerr  << ">" << prev_colour;
+                if (gdl >= DEBUG_SCOPE) {
+                    set_ansi_colour(ANSI_BLUE, __FUNCTION__, __FILE__, __LINE__);
+                    cerr  << ">";
+                    
+                }
+                if (gdl >= DEBUG_UNIMPLEMENTED) {
+                    set_ansi_colour(prev_colour, __FUNCTION__, __FILE__, __LINE__);
+                }
             }
 
             return true;
@@ -253,11 +264,17 @@ bool enforce_enclosure_type(int y, const char *function, const char *file, int l
             }
 
             if (gdl >= DEBUG_SCOPENUMBERS) {
+                set_ansi_colour(ANSI_GREEN, __FUNCTION__, __FILE__, __LINE__);
                 cerr  << "{" << brackets_scope_depth << "}) " ;
-                if (gdl >= DEBUG_UNIMPLEMENTED) set_ansi_colour(prev_colour, __FUNCTION__, __FILE__, __LINE__);
+                if (gdl >= DEBUG_UNIMPLEMENTED) {
+                    set_ansi_colour(prev_colour, __FUNCTION__, __FILE__, __LINE__);
+                }
             } else {
-                if (gdl >= DEBUG_SCOPE) cerr  << ")";
-                if (gdl > DEBUG_UNIMPLEMENTED) {
+                if (gdl >= DEBUG_SCOPE) {
+                    set_ansi_colour(ANSI_GREEN, __FUNCTION__, __FILE__, __LINE__);
+                    cerr  << ")";
+                }
+                if (gdl >= DEBUG_UNIMPLEMENTED) {
                     set_ansi_colour(prev_colour, __FUNCTION__, __FILE__, __LINE__);
                 }
             }
@@ -487,6 +504,9 @@ int parse_skip_unimplemented(const char *s)
         } else {
             cerr << "[::" << s << " (" << bn << "," << line_num << ")] ";
         }
+
+        set_ansi_colour(last_ansi_colour, __FUNCTION__, __FILE__, __LINE__);
+
     }
     if (gdl >= DEBUG_UNIMPLEMENTED && gdl < DEBUG_SCOPE) {
         //cerr << "\nZZ" << flush;
@@ -509,13 +529,18 @@ int parse_skip_unimplemented(const char *s)
             return 1 ;
             break;
 
-
+        case VARIABLE_COMMA:
+        case DOUBLE_QUESTION:
         case DOLLARSTORE_STRING:
             if (gdl >= DEBUG_UNIMPLEMENTED) cerr << yylval.sval << " ";
             break;
 
 
 
+        case DEFINE:
+        case IF:
+        case SYNTAX:
+        case RTRUE:
         case BLOAT:
         case PRINC:
         case COMMENT:
@@ -724,7 +749,10 @@ int parse_skip_unimplemented(const char *s)
 
 
         default:
-            if (gdl > DEBUG_MISSINGTOKEN) cerr << "{token=" << token_name(y) << "=" << y << "} ";
+            if (gdl > DEBUG_MISSINGTOKEN) {
+                cerr << "{unhandled token=" << token_name(y) << "=" << y << "} ";
+                assert(NULL);
+            }
             break;
         }
 
