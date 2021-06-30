@@ -14,6 +14,7 @@
 #define DEBUG_SCOPEDEPTH            4
 #define DEBUG_MISSINGTOKEN          5
 #define DEBUG_LINENUMBERS           6
+#define DEBUG_SCOPENUMBERS          7
 
 #define ANSI_NONE       ( ansi_colour ? "\033[0m" : "" )
 #define ANSI_BLACK      ( ansi_colour ? "\033[30m" : "" )
@@ -110,8 +111,8 @@ bool push_enclosure_type(int y)
         assert(stack_push(scope_stack, new_enclosure_type));
         brackets_scope_depth++;
         if (gdl >= DEBUG_UNIMPLEMENTED) set_ansi_colour(ANSI_GREEN, __FUNCTION__, __FILE__, __LINE__);
-        if (gdl >= DEBUG_SCOPEDEPTH) {
-            cout << "({" << brackets_scope_depth << "}";
+        if (gdl >= DEBUG_SCOPENUMBERS) {
+            cout << "({" << brackets_scope_depth << "} ";
         } else {
             if (gdl >= DEBUG_SCOPE) cout << "(";
         }
@@ -128,8 +129,8 @@ bool push_enclosure_type(int y)
 
 
         if (gdl >= DEBUG_UNIMPLEMENTED) set_ansi_colour(ANSI_BLUE, __FUNCTION__, __FILE__, __LINE__);
-        if (gdl >= DEBUG_SCOPEDEPTH) {
-            cout << "<{" << alligator_scope_depth << "}";
+        if (gdl >= DEBUG_SCOPENUMBERS) {
+            cout << "<{" << alligator_scope_depth << "} ";
         } else {
             if (gdl >= DEBUG_SCOPE) cout << "<";
         }
@@ -143,8 +144,8 @@ bool push_enclosure_type(int y)
         assert(stack_push(scope_stack, new_enclosure_type));
         square_brackets_scope_depth++;
         if (gdl >= DEBUG_UNIMPLEMENTED) set_ansi_colour(ANSI_RED, __FUNCTION__, __FILE__, __LINE__);
-        if (gdl >= DEBUG_SCOPEDEPTH) {
-            cout << "[{" << square_brackets_scope_depth << "}";
+        if (gdl >= DEBUG_SCOPENUMBERS) {
+            cout << "[{" << square_brackets_scope_depth << "} ";
         } else {
             if (gdl >= DEBUG_SCOPE) cout << "[";
         }
@@ -203,8 +204,8 @@ bool enforce_enclosure_type(int y, const char *function, const char *file, int l
                 }
             }
 
-            if (gdl >= DEBUG_SCOPEDEPTH) {
-                cout <<  "{" << alligator_scope_depth << "}>" << prev_colour;
+            if (gdl >= DEBUG_SCOPENUMBERS) {
+                cout <<  "{" << alligator_scope_depth << "}> " << prev_colour;
             } else {
                 if (gdl >= DEBUG_SCOPE) cout  << ">" << prev_colour;
             }
@@ -245,8 +246,8 @@ bool enforce_enclosure_type(int y, const char *function, const char *file, int l
                 }
             }
 
-            if (gdl >= DEBUG_SCOPEDEPTH) {
-                cout  << "{" << brackets_scope_depth << "})" ;
+            if (gdl >= DEBUG_SCOPENUMBERS) {
+                cout  << "{" << brackets_scope_depth << "}) " ;
                 if (gdl >= DEBUG_UNIMPLEMENTED) set_ansi_colour(prev_colour, __FUNCTION__, __FILE__, __LINE__);
             } else {
                 if (gdl >= DEBUG_SCOPE) cout  << ")";
@@ -289,8 +290,8 @@ bool enforce_enclosure_type(int y, const char *function, const char *file, int l
                 }
             }
 
-            if (gdl >= DEBUG_SCOPEDEPTH) {
-                cout << "{" << square_brackets_scope_depth << "}]";
+            if (gdl >= DEBUG_SCOPENUMBERS) {
+                cout << "{" << square_brackets_scope_depth << "}] ";
             } else {
                 if (gdl >= DEBUG_SCOPE) cout << "])";
             }
@@ -545,6 +546,8 @@ int parse_skip_unimplemented(const char *s)
             break;
         case GLOBAL_VAR_QUERY:
             if (gdl > DEBUG_UNIMPLEMENTED) cout << yylval.sval << " ";
+            cout << flush;
+            //assert(NULL);
             break;
         case ADDITION:
             if (gdl > DEBUG_UNIMPLEMENTED) cout << "+ ";
@@ -601,8 +604,8 @@ int parse_skip_unimplemented(const char *s)
             } else {
                 if (gdl > DEBUG_UNIMPLEMENTED && gdl < DEBUG_SCOPEDEPTH) {
                     //cout << "\nZ2";
-                    // cout << "<ZZ4>\n";
-                    cout << "\n";
+                    //cout << "<ZZ4>\n";
+                    //cout << "\n";
                     insert_indent(alligator_scope_depth + brackets_scope_depth);
                 } else {
                 }
@@ -611,7 +614,7 @@ int parse_skip_unimplemented(const char *s)
 
             break;
         case GLOBAL_VAR_DEREF:
-            if (gdl > DEBUG_UNIMPLEMENTED) cout << yylval.sval ;
+            if (gdl > DEBUG_UNIMPLEMENTED) cout << yylval.sval << " ";
             break;
         case STRING_LITERAL:
 
@@ -638,21 +641,21 @@ int parse_skip_unimplemented(const char *s)
             enforce_enclosure_type(RSB, __FUNCTION__, __FILE__, __LINE__);
             break;
         case LT:
-            if (gdl >= DEBUG_SCOPEDEPTH ) {
-                if (gdl >= DEBUG_LINENUMBERS) {
-                    set_ansi_colour(ANSI_WHITE, __FUNCTION__, __FILE__, __LINE__);
-                    //cerr << "\n(X4)" ;
-                    cerr << "\n";
-                    cerr << basename(my_yyfilename) << "," << line_num << ": " << flush;
-                    set_ansi_colour(last_ansi_colour, __FUNCTION__, __FILE__, __LINE__);
-                }
 
-                if (gdl < DEBUG_LINENUMBERS) {
-                    //cerr << "\n<X6>";
-                    cerr << "\n";
-                }
-                insert_indent(alligator_scope_depth + brackets_scope_depth);
+            if (gdl >= DEBUG_LINENUMBERS) {
+                set_ansi_colour(ANSI_WHITE, __FUNCTION__, __FILE__, __LINE__);
+                //cerr << "\n(X4)" ;
+                cerr << "\n";
+                cerr << basename(my_yyfilename) << "," << line_num << ": " << flush;
+                set_ansi_colour(last_ansi_colour, __FUNCTION__, __FILE__, __LINE__);
             }
+
+            if (gdl < DEBUG_LINENUMBERS) {
+                //cerr << "\n<X6>";
+                cerr << "\n";
+            }
+            insert_indent(alligator_scope_depth + brackets_scope_depth);
+
             push_enclosure_type(LT);
 
             break;
@@ -963,7 +966,7 @@ int parse_recursive(int y) {
             assert(current_context == CONTEXT_GLOBAL);
             if (gdl >= DEBUG_SCOPE) {
                 //cout << "X9" << yylval.sval;
-              }
+            }
             break;
 
         default:
