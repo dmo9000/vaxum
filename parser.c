@@ -479,8 +479,14 @@ int parse_skip_unimplemented(const char *s)
     assert (bn);
 
     if (gdl >= DEBUG_UNIMPLEMENTED) {
+
         set_ansi_colour(ANSI_RED, __FUNCTION__, __FILE__, __LINE__);
-        cerr << "[::" << s << " (" << bn << "," << line_num << ")] ";
+
+        if (gdl >= DEBUG_LINENUMBERS) {
+            cerr << "[::" << s << "] ";
+        } else {
+            cerr << "[::" << s << " (" << bn << "," << line_num << ")] ";
+        }
     }
     if (gdl >= DEBUG_UNIMPLEMENTED && gdl < DEBUG_SCOPE) {
         //cerr << "\nZZ" << flush;
