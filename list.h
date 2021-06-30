@@ -7,7 +7,7 @@ struct _fileref {
     int line_num;
     FILE *handle;
     off_t offset;
-	YY_BUFFER_STATE buffer_state;
+    YY_BUFFER_STATE buffer_state;
 };
 
 
@@ -16,8 +16,7 @@ enum _listitemtype {
     LISTITEM_FILEREF,
     LISTITEM_INT16,
     LISTITEM_STRING,
-	LISTITEM_ENCLOSURE
-
+    LISTITEM_ENCLOSURE
 };
 
 union _listitempayload {
