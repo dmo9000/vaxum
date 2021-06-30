@@ -32,10 +32,10 @@ stackitem* stack_pop(stack *s)
     stackitem *lsi = NULL;
 
     if (!s->count) {
-            /* can't pop item from empty stack */
-            assert(s->head == NULL);
-            assert(s->tail == NULL);
-            return NULL;
+        /* can't pop item from empty stack */
+        assert(s->head == NULL);
+        assert(s->tail == NULL);
+        return NULL;
     }
 
     lsi = (stackitem *) s->head;
@@ -43,12 +43,12 @@ stackitem* stack_pop(stack *s)
     assert(s->count >= 0);
 
     if (s->count > 0) {
-        s->head = lsi->next;     
+        s->head = lsi->next;
         s->head->prev = NULL;
         assert(lsi->next);
     } else {
         s->head = NULL;
-        s->tail = NULL;     
+        s->tail = NULL;
     }
     //cout << "\n<stack_pop " << s->label << ":stack_size=" << s->count << ">\n";
     lsi->prev = NULL;
